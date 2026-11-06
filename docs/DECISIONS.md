@@ -61,6 +61,9 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Admin frontend | `/admin` je u istom Next.js-u, sa svojim layoutom (shop rute su u grupi `(shop)`). `proxy.ts` samo preusmerava bez kolačića `SESSION`, a stvarnu proveru radi backend (`/api/auth/me`) na svakoj stranici. Meni i pristup po ulozi su u jednoj tabeli (`lib/admin-nav.ts`) | proxy nije mesto za autorizaciju (preporuka Next.js-a), backend je merodavan |
 | Audit log | Tabela `audit_log` u istoj bazi, trigger odbija `UPDATE`, `DELETE` i `TRUNCATE`, upis u istoj transakciji kao izmena (`MANDATORY`), dozvoljene akcije su `CHECK` lista ([ADR 0005](adr/0005-append-only-audit-log.md)) | istorija ne može da se prepiše, a audit ne može da opiše izmenu koja se nije desila |
 | Magacin u adminu | `/api/admin/stock` za vlasnika i magacionera (`@PreAuthorize`): lista sa pretragom (i neaktivne varijante), detalj, poslednjih 200 kretanja, prijem (1 do 100.000) i popis (uz obavezan razlog) | magacioner vidi sve što fizički postoji, ne samo ono što je u prodaji |
+| Status porudžbine | `NEW → CONFIRMED → SHIPPED → DELIVERED`, otkazivanje samo iz `NEW` ili `CONFIRMED`; nedozvoljen prelaz je `409`. Red porudžbine se zaključava (`FOR UPDATE`) dok se status menja | dva prodavca ne mogu istovremeno da otkažu istu porudžbinu |
+| Otkazivanje vraća zalihu | Vraća se onoliko koliko je porudžbina stvarno skinula (zbir njenih kretanja), kao `RETURN`; jedinstven indeks u bazi ne dozvoljava drugo vraćanje iste varijante | porudžbine iz Faze 1 nikad nisu skidale zalihu, pa ne smeju ni da je vrate |
+| Ograničenje porudžbina | Najviše 20 porudžbina sa iste adrese za 10 minuta (`429` sa `Retry-After`), brojač u memoriji | zaštita od spama; po adresi, ne po email-u, da niko ne može da blokira tuđi email |
 
 ## Plan za sub-agente po fazama
 
@@ -90,7 +93,6 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
 | Idempotentni ključ za porudžbinu | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | Faza 4 |
-| Ograničenje učestalosti na `POST /api/orders` | spam porudžbine | 3.4 |
 | Svetla tema i telefon nisu vizuelno provereni (Chrome ne dozvoljava prozor uži od oko 500 px) | izgled je deo portfolija | pre deploya, na pravom telefonu ili kroz DevTools |
 | Slike proizvoda (`image_url` je prazan, kartice imaju rezervnu sliku) | izgled kataloga zavisi od fotografija | pre deploya |
 | Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | pre deploya |
@@ -111,7 +113,7 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 | Actuator na posebnom portu i backend dostupan samo Next serveru | `rewrites` nisu bezbednosna granica | pre deploya |
 | Pun CSP sa nonce-om i pinovanje akcija po SHA uz Dependabot | dodatna odbrana | pre deploya |
 | `X-Forwarded-For` je pouzdan samo dok backend vidi samo Next server (`forward-headers-strategy: native` je uključen u 3.1) | inače posetilac može da lažira adresu i zaobiđe ograničenje po adresi | pre deploya |
-| Brojač neuspelih prijava je u memoriji | sa više instanci svaka broji za sebe, restart ga briše | ako bude više instanci |
+| Brojači za prijavu i porudžbine su u memoriji | sa više instanci svaka broji za sebe, restart ih briše | ako bude više instanci |
 | Rezervacija zalihe u korpi (korpa koja "drži" artikal) | kupac može da vidi "na stanju" i dobije `422` pri porudžbini | uz prijavu, Faza 3 ili kasnije |
 | Atomski `UPDATE ... RETURNING` umesto `SELECT ... FOR UPDATE` | brže ako jedna varijanta postane usko grlo (ADR 0003) | kad merenje pokaže potrebu |
 | Količina u korpi može da bude veća od zalihe dok kupac ne pošalje porudžbinu (API vraća samo `inStock`, ne tačnu količinu) | kupac saznaje tek na checkout-u, ali dobija tačne stavke | uz rezervaciju ili "još samo N komada" |
@@ -133,3 +135,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 - **3.1**: prijava zaposlenih ([ADR 0004](adr/0004-employee-login-with-server-sessions.md)). `V5` (`employees`, tabele Spring Session-a), `POST /api/auth/login` i `logout`, `GET /api/auth/me` i `csrf`, BCrypt 12, `429` posle 5 promašaja, sesija najviše 8 sati, prvi vlasnik iz env varijabli, tri dev naloga. Test pravog toka browsera na pravom HTTP serveru, jer MockMvc menja CSRF repozitorijum testnim. 92 backend testa.
 - **3.2**: admin okvir. Shop rute su premeštene u grupu `(shop)`, pa admin nema korpu u zaglavlju. Stranice: `/admin/login` (CSRF iz kolačića, poruke za `401` i `429`, `next` dozvoljava samo `/admin` putanje), `/admin` sa karticama po ulozi, i stranice porudžbina, magacina, zaposlenih i audit loga sa proverom uloge i porukom "u izradi". Proxy preusmerava bez sesije. Provereno za sve tri uloge kroz Next proxy, a stranica prijave u browseru. 135 frontend testova.
 - **3.3**: `V6` audit log (trigger protiv izmene, brisanja i `TRUNCATE`), `AuditService` u istoj transakciji, API magacina za vlasnika i magacionera, stranice `/admin/stock` (pretraga, stranice) i `/admin/stock/{id}` (prijem, popis, istorija). Rollback test kad audit ne može da se upiše, potvrđen mutacionim testom. Provereno kroz Next proxy na dev bazi: prijem, popis, audit redovi, prodavac dobija `403`. 105 backend i 146 frontend testova.
+- **3.4**: porudžbine u adminu za vlasnika i prodavca: lista sa filterom po statusu i pretragom (broj, ime, email), detalj sa kupcem i istorijom, promena statusa po pravilima (`409` za nedozvoljen korak), otkazivanje vraća zalihu (`V7`: tip `RETURN`, jedinstven indeks, nove akcije u auditu, indeksi za listu). Ograničenje javnih porudžbina po adresi. Testovi: 10 istovremenih otkazivanja daju jedno vraćanje zalihe (mutacioni test bez zaključavanja pada), rollback kad audit ne može da se upiše, stara porudžbina bez skinute zalihe. Provereno kroz Next proxy na dev bazi. 117 backend i 152 frontend testa.

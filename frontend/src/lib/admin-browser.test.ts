@@ -124,6 +124,7 @@ describe("adminPost", () => {
       [401, "unauthorized"],
       [403, "forbidden"],
       [404, "not-found"],
+      [409, "conflict"],
       [500, "failed"],
     ] as const) {
       stubFetch(csrf(), response(status));

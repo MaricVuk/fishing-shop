@@ -65,4 +65,8 @@ class AuditLog {
         this.newValue = newValue;
         this.createdAt = Instant.now();
     }
+
+    AuditEntry toEntry() {
+        return new AuditEntry(id, actorEmail, action, entityType, entityId, oldValue, newValue, createdAt);
+    }
 }

@@ -26,7 +26,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({AuthProperties.class, OwnerBootstrapProperties.class})
+@EnableConfigurationProperties({AuthProperties.class, OwnerBootstrapProperties.class, OrderRateLimitProperties.class})
 class SecurityConfig {
 
     static final String LOGIN = "/api/auth/login";
@@ -35,7 +35,8 @@ class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(
-            HttpSecurity http, ProblemWriter problems, LoginAttemptLimiter limiter, AuthProperties properties) {
+            HttpSecurity http, ProblemWriter problems, LoginAttemptLimiter limiter, AuthProperties properties,
+            OrderRateLimitProperties orderLimits) {
         http
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
@@ -78,6 +79,7 @@ class SecurityConfig {
                         .accessDeniedHandler((request, response, exception) ->
                                 problems.write(request, response, HttpStatus.FORBIDDEN, "Access denied")))
                 .addFilterBefore(new LoginRateLimitFilter(limiter, problems), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new OrderRateLimitFilter(orderLimits, problems), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new SessionAgeFilter(properties.sessionMaxAge()), SecurityContextHolderFilter.class);
         return http.build();
     }

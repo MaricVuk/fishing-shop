@@ -65,8 +65,31 @@ public class CustomerOrder {
         total = total.add(item.lineTotal());
     }
 
+    public void moveTo(OrderStatus next) {
+        if (!status.canBecome(next)) {
+            throw new IllegalStateException("Order " + id + " cannot go from " + status + " to " + next);
+        }
+        status = next;
+    }
+
     public Long getId() {
         return id;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+
+    public String getShippingAddress() {
+        return shippingAddress;
     }
 
     public OrderStatus getStatus() {
