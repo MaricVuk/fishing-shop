@@ -4,12 +4,14 @@ import {
   removeLine,
   serializeCart,
   setQuantity,
+  type AddStatus,
   type CartLine,
 } from "@/lib/cart";
 
 const STORAGE_KEY = "fishing-shop.cart.v1";
 const EMPTY: CartLine[] = [];
 
+let storageBroken = false;
 let memoryRaw: string | null = null;
 let snapshot: { raw: string | null; lines: CartLine[] } = {
   raw: null,
@@ -18,6 +20,7 @@ let snapshot: { raw: string | null; lines: CartLine[] } = {
 const listeners = new Set<() => void>();
 
 function readRaw(): string | null {
+  if (storageBroken) return memoryRaw;
   try {
     return window.localStorage.getItem(STORAGE_KEY) ?? memoryRaw;
   } catch {
@@ -30,7 +33,7 @@ function persist(raw: string): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, raw);
   } catch {
-    return;
+    storageBroken = true;
   }
 }
 
@@ -60,11 +63,10 @@ export function subscribeToCart(listener: () => void): () => void {
   };
 }
 
-export function addVariantToCart(variantId: number): boolean {
-  const next = addToCart(getCartSnapshot(), variantId);
-  if (next === null) return false;
-  commit(next);
-  return true;
+export function addVariantToCart(variantId: number): AddStatus {
+  const result = addToCart(getCartSnapshot(), variantId);
+  if (result.status === "added") commit(result.lines);
+  return result.status;
 }
 
 export function setVariantQuantity(variantId: number, quantity: number): void {

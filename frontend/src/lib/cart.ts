@@ -5,6 +5,12 @@ export type CartLine = { variantId: number; quantity: number };
 export const MAX_QUANTITY = 99;
 export const MAX_LINES = 50;
 
+export type AddResult =
+  | { status: "added"; lines: CartLine[] }
+  | { status: "cart-full" | "quantity-limit" };
+
+export type AddStatus = AddResult["status"];
+
 export type CartItem = {
   line: CartLine;
   variant: VariantLine | null;
@@ -28,20 +34,27 @@ export function addToCart(
   lines: CartLine[],
   variantId: number,
   quantity = 1,
-): CartLine[] | null {
+): AddResult {
   const existing = lines.find((line) => line.variantId === variantId);
 
   if (existing) {
-    return lines.map((line) =>
-      line === existing
-        ? { ...line, quantity: Math.min(line.quantity + quantity, MAX_QUANTITY) }
-        : line,
-    );
+    if (existing.quantity >= MAX_QUANTITY) return { status: "quantity-limit" };
+    return {
+      status: "added",
+      lines: lines.map((line) =>
+        line === existing
+          ? { ...line, quantity: Math.min(line.quantity + quantity, MAX_QUANTITY) }
+          : line,
+      ),
+    };
   }
 
-  if (lines.length >= MAX_LINES) return null;
+  if (lines.length >= MAX_LINES) return { status: "cart-full" };
 
-  return [...lines, { variantId, quantity: Math.min(quantity, MAX_QUANTITY) }];
+  return {
+    status: "added",
+    lines: [...lines, { variantId, quantity: Math.min(quantity, MAX_QUANTITY) }],
+  };
 }
 
 export function setQuantity(

@@ -4,6 +4,7 @@ type RawParams = Record<string, string | string[] | undefined>;
 
 const SLUG = /^[a-z0-9-]{1,120}$/;
 const MAX_SEARCH_LENGTH = 100;
+const MAX_PAGE = 10_000;
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -18,7 +19,7 @@ export function parseProductQuery(raw: RawParams): ProductQuery {
     category: category && SLUG.test(category) ? category : null,
     q: (first(raw.q) ?? "").trim().slice(0, MAX_SEARCH_LENGTH),
     sort: sort ?? DEFAULT_SORT,
-    page: Number.isInteger(page) && page > 1 ? page : 1,
+    page: Number.isInteger(page) && page > 1 ? Math.min(page, MAX_PAGE) : 1,
   };
 }
 

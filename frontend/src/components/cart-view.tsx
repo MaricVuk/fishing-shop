@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Notice } from "@/components/notice";
 import { ProductImage } from "@/components/product-image";
 import { QuantityStepper } from "@/components/quantity-stepper";
@@ -42,14 +43,14 @@ function CartLineRow({
   const { line, variant } = item;
 
   return (
-    <li className="flex gap-4 py-5">
+    <li className="grid grid-cols-[4rem_1fr] gap-x-4 gap-y-2 py-5 sm:grid-cols-[6rem_1fr_auto]">
       <ProductImage
         src={variant?.imageUrl ?? null}
         alt={variant?.productName ?? ""}
         sizes="96px"
-        className="w-24 shrink-0 self-start"
+        className="row-span-2 w-16 self-start sm:row-span-1 sm:w-24"
       />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0">
         {variant ? (
           <>
             <Link
@@ -87,7 +88,7 @@ function CartLineRow({
         </div>
       </div>
       {variant && (
-        <div className="text-right">
+        <div className="col-start-2 sm:col-start-3 sm:row-start-1 sm:text-right">
           <p className="font-semibold tabular-nums">{formatMinor(item.lineTotalMinor)}</p>
           {line.quantity > 1 && (
             <p className="text-xs text-muted-foreground tabular-nums">
@@ -106,82 +107,103 @@ export function CartView() {
   const { status, lines: variantLines, retry } = useVariantLines(
     cart.lines.map((line) => line.variantId),
   );
+  const [removals, setRemovals] = useState(0);
 
-  if (!hydrated) return <CartSkeleton />;
+  useEffect(() => {
+    if (removals > 0) document.getElementById("sadrzaj")?.focus();
+  }, [removals]);
 
-  if (cart.lines.length === 0) {
-    return (
-      <Notice title="Korpa je prazna" description="Dodajte proizvode da biste nastavili.">
-        <Link href="/products" className={buttonVariants({ size: "lg" })}>
-          Pogledaj proizvode
-        </Link>
-      </Notice>
-    );
+  function handleRemove(variantId: number) {
+    cart.remove(variantId);
+    setRemovals((count) => count + 1);
   }
 
-  if (status === "loading") return <CartSkeleton />;
+  function renderBody() {
+    if (!hydrated) return <CartSkeleton />;
 
-  if (status === "error") {
+    if (cart.lines.length === 0) {
+      return (
+        <Notice title="Korpa je prazna" description="Dodajte proizvode da biste nastavili.">
+          <Link href="/products" className={buttonVariants({ size: "lg" })}>
+            Pogledaj proizvode
+          </Link>
+        </Notice>
+      );
+    }
+
+    if (status === "loading") return <CartSkeleton />;
+
+    if (status === "error") {
+      return (
+        <Notice
+          title="Korpa trenutno nije dostupna"
+          description="Nismo uspeli da učitamo cene i dostupnost. Pokušajte ponovo za trenutak."
+        >
+          <Button size="lg" onClick={retry}>
+            Pokušaj ponovo
+          </Button>
+        </Notice>
+      );
+    }
+
+    const view = buildCartView(cart.lines, variantLines);
+
     return (
-      <Notice
-        title="Korpa trenutno nije dostupna"
-        description="Nismo uspeli da učitamo cene i dostupnost. Pokušajte ponovo za trenutak."
-      >
-        <Button size="lg" onClick={retry}>
-          Pokušaj ponovo
-        </Button>
-      </Notice>
+      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_22rem] lg:gap-12">
+        <ul className="divide-y border-y">
+          {view.items.map((item) => (
+            <CartLineRow
+              key={item.line.variantId}
+              item={item}
+              onQuantityChange={(quantity) =>
+                cart.setQuantity(item.line.variantId, quantity)
+              }
+              onRemove={() => handleRemove(item.line.variantId)}
+            />
+          ))}
+        </ul>
+        <aside className="h-fit rounded-xl bg-muted p-6 lg:sticky lg:top-6">
+          <h2 className="text-lg font-semibold">Pregled</h2>
+          <dl className="mt-4 flex flex-col gap-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Broj komada</dt>
+              <dd className="tabular-nums">{view.quantity}</dd>
+            </div>
+            <div className="flex justify-between text-base font-semibold">
+              <dt>Ukupno</dt>
+              <dd className="tabular-nums" aria-live="polite">
+                {formatMinor(view.totalMinor)}
+              </dd>
+            </div>
+          </dl>
+          {view.hasProblems ? (
+            <>
+              <p className="mt-4 text-sm text-destructive">
+                Uklonite nedostupne stavke da biste nastavili.
+              </p>
+              <Button size="lg" className="mt-4 h-11 w-full" disabled focusableWhenDisabled>
+                Nastavi na porudžbinu
+              </Button>
+            </>
+          ) : (
+            <Link
+              href="/checkout"
+              className={cn(buttonVariants({ size: "lg" }), "mt-6 h-11 w-full")}
+            >
+              Nastavi na porudžbinu
+            </Link>
+          )}
+        </aside>
+      </div>
     );
   }
-
-  const view = buildCartView(cart.lines, variantLines);
 
   return (
-    <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_22rem] lg:gap-12">
-      <ul className="divide-y border-y">
-        {view.items.map((item) => (
-          <CartLineRow
-            key={item.line.variantId}
-            item={item}
-            onQuantityChange={(quantity) =>
-              cart.setQuantity(item.line.variantId, quantity)
-            }
-            onRemove={() => cart.remove(item.line.variantId)}
-          />
-        ))}
-      </ul>
-      <aside className="h-fit rounded-xl bg-muted p-6 lg:sticky lg:top-6">
-        <h2 className="text-lg font-semibold">Pregled</h2>
-        <dl className="mt-4 flex flex-col gap-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Broj komada</dt>
-            <dd className="tabular-nums">{view.quantity}</dd>
-          </div>
-          <div className="flex justify-between text-base font-semibold">
-            <dt>Ukupno</dt>
-            <dd className="tabular-nums" aria-live="polite">
-              {formatMinor(view.totalMinor)}
-            </dd>
-          </div>
-        </dl>
-        {view.hasProblems ? (
-          <>
-            <p className="mt-4 text-sm text-destructive">
-              Uklonite nedostupne stavke da biste nastavili.
-            </p>
-            <Button size="lg" className="mt-4 h-11 w-full" disabled>
-              Nastavi na porudžbinu
-            </Button>
-          </>
-        ) : (
-          <Link
-            href="/checkout"
-            className={cn(buttonVariants({ size: "lg" }), "mt-6 h-11 w-full")}
-          >
-            Nastavi na porudžbinu
-          </Link>
-        )}
-      </aside>
-    </div>
+    <>
+      <p role="status" className="sr-only">
+        {removals > 0 && "Stavka je uklonjena."}
+      </p>
+      {renderBody()}
+    </>
   );
 }

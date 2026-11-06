@@ -43,7 +43,7 @@ describe("validateCheckout", () => {
     expect(validateCheckout({ ...valid, email: "  marko@example.com " })).toEqual({});
   });
 
-  it.each(["abc", "12345", "060-ABC-123"])("rejects the phone %s", (phone) => {
+  it.each(["abc", "12345", "060-ABC-123", "......", "1"])("rejects the phone %s", (phone) => {
     expect(validateCheckout({ ...valid, phone }).phone).toBe(
       "Unesite ispravan broj telefona",
     );

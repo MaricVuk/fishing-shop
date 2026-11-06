@@ -15,7 +15,7 @@ export function QuantityStepper({
     <div
       role="group"
       aria-label={label}
-      className="inline-flex items-center rounded-lg border"
+      className="inline-flex items-center rounded-lg border border-input"
     >
       <Button
         variant="ghost"
@@ -23,6 +23,7 @@ export function QuantityStepper({
         className="size-10"
         aria-label="Smanji količinu"
         disabled={value <= 1}
+        focusableWhenDisabled
         onClick={() => onChange(value - 1)}
       >
         <Minus aria-hidden />
@@ -36,6 +37,7 @@ export function QuantityStepper({
         className="size-10"
         aria-label="Povećaj količinu"
         disabled={value >= MAX_QUANTITY}
+        focusableWhenDisabled
         onClick={() => onChange(value + 1)}
       >
         <Plus aria-hidden />

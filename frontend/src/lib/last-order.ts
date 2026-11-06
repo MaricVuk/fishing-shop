@@ -2,6 +2,7 @@ import type { OrderResponse } from "@/lib/types";
 
 const STORAGE_KEY = "fishing-shop.last-order.v1";
 
+let memoryOrder: OrderResponse | null = null;
 let snapshot: { raw: string | null; order: OrderResponse | null } = {
   raw: null,
   order: null,
@@ -25,6 +26,7 @@ export function parseStoredOrder(raw: string | null): OrderResponse | null {
 }
 
 export function saveLastOrder(order: OrderResponse): void {
+  memoryOrder = order;
   try {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(order));
   } catch {
@@ -39,6 +41,7 @@ export function getLastOrderSnapshot(): OrderResponse | null {
   } catch {
     raw = null;
   }
+  if (raw === null) return memoryOrder;
   if (raw !== snapshot.raw) {
     snapshot = { raw, order: parseStoredOrder(raw) };
   }
