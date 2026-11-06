@@ -55,7 +55,7 @@ INSERT INTO product_variants (product_id, sku, attributes, price)
 SELECT p.id, s.sku, s.attributes, s.price
 FROM seed_catalog s
 JOIN products p ON p.name = s.product_name
-ON CONFLICT (sku) DO UPDATE SET attributes = EXCLUDED.attributes;
+ON CONFLICT (sku) DO NOTHING;
 
 INSERT INTO inventory (variant_id, quantity)
 SELECT v.id, s.stock

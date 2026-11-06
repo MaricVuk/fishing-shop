@@ -18,6 +18,11 @@ public class OrderRejectedException extends ErrorResponseException {
         return new OrderRejectedException(problem);
     }
 
+    static OrderRejectedException totalTooLarge() {
+        return new OrderRejectedException(
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, "Order total is too large"));
+    }
+
     static OrderRejectedException quantityTooLarge(Long variantId, int maxQuantity) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNPROCESSABLE_CONTENT, "Quantity of one item cannot exceed " + maxQuantity);

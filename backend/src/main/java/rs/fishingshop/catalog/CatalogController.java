@@ -32,7 +32,7 @@ class CatalogController {
             @RequestParam(required = false) @Pattern(regexp = "[a-z0-9-]{1,120}") String category,
             @RequestParam(required = false) @Size(max = 100) String q,
             @RequestParam(defaultValue = "name") @Pattern(regexp = "name|price_asc|price_desc|newest") String sort,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "0") @Min(0) @Max(9999) int page,
             @RequestParam(defaultValue = "12") @Min(1) @Max(50) int size) {
         return catalog.searchProducts(category, q, ProductSort.fromParameter(sort), page, size);
     }

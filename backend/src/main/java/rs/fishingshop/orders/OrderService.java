@@ -1,5 +1,6 @@
 package rs.fishingshop.orders;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,8 @@ import rs.fishingshop.catalog.ProductVariantRepository;
 public class OrderService {
 
     static final int MAX_LINE_QUANTITY = 99;
+
+    private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999.99");
 
     private final CustomerOrderRepository orders;
     private final ProductVariantRepository variants;
@@ -50,6 +53,10 @@ public class OrderService {
                     variant.getPrice(),
                     quantity));
         });
+
+        if (order.getTotal().compareTo(MAX_TOTAL) > 0) {
+            throw OrderRejectedException.totalTooLarge();
+        }
 
         return OrderResponse.from(orders.save(order));
     }
