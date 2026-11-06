@@ -33,6 +33,46 @@ export type ProductDetail = {
   variants: VariantDetail[];
 };
 
+export type VariantLine = {
+  variantId: number;
+  productId: number;
+  productName: string;
+  brand: string | null;
+  sku: string;
+  attributes: Record<string, string>;
+  price: number;
+  imageUrl: string | null;
+  inStock: boolean;
+};
+
+export type FieldViolation = { field: string; code: string };
+
+export type OrderRequest = {
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    shippingAddress: string;
+  };
+  items: { variantId: number; quantity: number }[];
+};
+
+export type OrderItemResponse = {
+  productName: string;
+  sku: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+};
+
+export type OrderResponse = {
+  id: number;
+  status: string;
+  total: number;
+  createdAt: string;
+  items: OrderItemResponse[];
+};
+
 export type PageResponse<T> = {
   content: T[];
   page: number;

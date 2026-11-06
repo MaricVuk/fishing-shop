@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   attributeLabel,
   describeAttributes,
+  formatMinor,
   formatPrice,
+  itemCountLabel,
   productCountLabel,
 } from "@/lib/format";
 
@@ -36,6 +38,27 @@ describe("formatPrice", () => {
 
   it("keeps two decimals", () => {
     expect(formatPrice(750.5)).toMatch(/^750,50\sRSD$/);
+  });
+});
+
+describe("formatMinor", () => {
+  it("formats minor units as dinars", () => {
+    expect(formatMinor(1390050)).toMatch(/^13\.900,50\sRSD$/);
+  });
+});
+
+describe("itemCountLabel", () => {
+  it.each([
+    [1, "1 stavka"],
+    [2, "2 stavke"],
+    [4, "4 stavke"],
+    [5, "5 stavki"],
+    [11, "11 stavki"],
+    [12, "12 stavki"],
+    [21, "21 stavka"],
+    [22, "22 stavke"],
+  ])("labels %i as %s", (count, label) => {
+    expect(itemCountLabel(count)).toBe(label);
   });
 });
 
