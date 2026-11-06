@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   auditEntityLabel,
+  auditTypeFilterLabel,
   describeAudit,
   parseAuditQuery,
   validateNewEmployee,
@@ -91,5 +92,23 @@ describe("parseAuditQuery", () => {
   it("accepts only known entity types", () => {
     expect(parseAuditQuery({ type: "ORDER", page: "2" })).toEqual({ type: "ORDER", page: 2 });
     expect(parseAuditQuery({ type: "NOPE" })).toEqual({ type: null, page: 1 });
+  });
+});
+
+describe("describeAudit for jobs", () => {
+  it("describes a retried job and labels its entity", () => {
+    const entry = {
+      id: 1,
+      actorEmail: "vlasnik@ribolov.test",
+      action: "JOB_RETRIED",
+      entityType: "JOB",
+      entityId: "12",
+      oldValue: { status: "DEAD", attempts: 14, lastError: "MailSendException: down" },
+      newValue: { status: "PENDING", type: "ORDER_INVOICE", orderId: 7 },
+      createdAt: "2026-11-06T20:00:00Z",
+    };
+    expect(describeAudit(entry)).toBe("Ponovo pokrenut posao Račun za porudžbinu #7 (posle 14 neuspelih pokušaja).");
+    expect(auditEntityLabel("JOB", "12")).toBe("Posao #12");
+    expect(auditTypeFilterLabel("JOB")).toBe("Poslovi");
   });
 });

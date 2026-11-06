@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireEmployee } from "@/lib/admin-access";
+import { adminGet } from "@/lib/admin-api";
+import { jobsAlert } from "@/lib/admin-jobs";
 import { adminNavigation } from "@/lib/admin-nav";
+import type { AdminJobOverview } from "@/lib/admin-types";
 
 export const metadata: Metadata = { title: "Pregled" };
 
@@ -9,6 +12,7 @@ const DESCRIPTIONS: Record<string, string> = {
   "/admin/orders": "Nove porudžbine, potvrda, slanje i otkazivanje.",
   "/admin/stock": "Stanje po varijanti, prijem robe, popis i istorija kretanja.",
   "/admin/employees": "Nalozi zaposlenih i njihove uloge.",
+  "/admin/jobs": "Mejlovi i računi koji se šalju u pozadini.",
   "/admin/audit": "Ko je šta promenio i kada.",
   "/admin/account": "Promena vaše lozinke.",
 };
@@ -16,11 +20,21 @@ const DESCRIPTIONS: Record<string, string> = {
 export default async function AdminHomePage() {
   const employee = await requireEmployee();
   const sections = adminNavigation(employee.role).filter((item) => item.href !== "/admin");
+  const jobs = employee.role === "OWNER" ? await adminGet<AdminJobOverview>("/api/admin/jobs?size=1") : null;
+  const alert = jobs ? jobsAlert(jobs, new Date()) : null;
 
   return (
     <>
       <h1 className="text-3xl font-bold">Zdravo, {employee.fullName.split(" ")[0]}</h1>
       <p className="mt-2 text-muted-foreground">Izaberite deo kojim danas radite.</p>
+      {alert && (
+        <p role="alert" className="mt-6 rounded-xl border border-destructive/40 bg-destructive/10 px-5 py-4 text-sm">
+          {alert.text}{" "}
+          <Link href={alert.href} className="font-medium text-primary underline-offset-4 hover:underline">
+            Pogledaj poslove
+          </Link>
+        </p>
+      )}
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sections.map((section) => (
           <li key={section.href}>

@@ -96,3 +96,25 @@ export type AdminEmployee = {
   active: boolean;
   createdAt: string;
 };
+
+export type JobStatus = "PENDING" | "DONE" | "DEAD";
+
+export type JobType = "ORDER_CONFIRMATION_EMAIL" | "ORDER_INVOICE";
+
+export type AdminJob = {
+  id: number;
+  type: JobType;
+  orderId: number;
+  status: JobStatus;
+  attempts: number;
+  nextAttemptAt: string;
+  lastError: string | null;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+export type AdminJobOverview = {
+  counts: Record<JobStatus, number>;
+  oldestOverdueSince: string | null;
+  jobs: AdminPage<AdminJob>;
+};
