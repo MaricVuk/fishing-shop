@@ -45,7 +45,7 @@ Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine,
 | Faza | Opis | Stanje |
 |---|---|---|
 | 0 | Priprema: skelet, baza, migracije, CI | Gotova |
-| 1 | Katalog i porudžbina | Sledeća |
+| 1 | Katalog i porudžbina | U toku |
 | 2 | Magacin i konkurentnost | Planirana |
 | 3 | Zaposleni, uloge, audit log | Planirana |
 | 4 | Pozadinski poslovi | Planirana |
@@ -61,13 +61,16 @@ Potrebno: JDK 21 i Docker. Maven nije potreban, projekat ima Maven wrapper (`mvn
 # 1. baza
 docker compose up -d
 
-# 2. backend
+# 2. backend (profil dev dodaje demo proizvode)
 cd backend
-./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 
 # provera
 curl http://localhost:8080/actuator/health
+curl "http://localhost:8080/api/products?size=3&sort=price_desc"
 ```
+
+Dokumentacija API-ja (Swagger UI): http://localhost:8080/swagger-ui.html
 
 Razvojne vrednosti su već podrazumevane. Za sopstvene: `cp .env.example .env` (fajl `.env` je u `.gitignore`).
 

@@ -22,6 +22,13 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Skill-ovi | Jedan po poslu, bez duplikata. Izbor u `CLAUDE.md` | duplikati zbunjuju Claude-a |
 | Imena | Repo `fishing-shop`, Java paket `rs.fishingshop`, Maven artifactId `fishing-shop` | doslednost sa pravilom "engleski kod" |
 | Git | Samo autor commit-uje i push-uje. Claude Code predlaže plan, poruku i trenutak | istorija repoa je deo portfolija i mora da bude autorova |
+| Redosled rada u fazi | Tanke vertikalne celine (API, pa odmah stranica). Jedna grana i jedan PR po celini, lokalni commit-ovi češće, push kad je celina gotova | rezultat se vidi odmah, a ugovor API-ja se proverava rano |
+| Korpa i kupci (Faza 1) | Korpa u browseru (localStorage), server prima gotovu porudžbinu. Kupac je gost, bez naloga | Spring ostaje bez sesija |
+| Greške API-ja | Spring `ProblemDetail` | ugrađeno, bez nove zavisnosti |
+| Pretraga (Faza 1) | `ILIKE`, indeks tek ako zatreba | mali katalog |
+| Seed podaci | Kategorije ostaju u `V1`, demo proizvodi idu u dev-only lokaciju | produkcija ne dobija demo proizvode |
+| Slike proizvoda | Kolona `image_url` u `V3`, bez uploada u Fazi 1 | shop bez slika izgleda prazno, a upload nije potreban |
+| Komentari u kodu | Samo kad su tehnički neophodni | čitljiv kod bez šuma |
 
 ## Plan za sub-agente po fazama
 
@@ -40,19 +47,23 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 |---|---|---|
 | Autentikacija (JWT ili sesija) | Faza 3 | ADR |
 | Red poslova (RabbitMQ ili jednostavnije) | Faza 4 | prvo ga izazovi `boring-tech-advisor` agentom |
-| UI biblioteka (Tailwind + shadcn/ui ili druga) | početak Faze 1 | |
+| UI biblioteka (Tailwind + shadcn/ui ili druga) | početak celine 1.2 (frontend) | |
 | Gde se deploy-uje (Fly.io, Render, Railway, VPS) | pre prvog deploya | mora da ima javni link |
-| Naziv i izgled shopa | početak Faze 1 | |
+| Naziv i izgled shopa | početak celine 1.2 (frontend) | |
 | Plaćanje karticom | verovatno van opsega | portfolio ne mora da prima pravi novac |
 | Više jezika (i18n) | samo ako zatreba | |
 
 ## Za proveru
 
 - Obrisati folder `reference/` (autor). Sadržaj je preuzet u skelet.
-- Pokrenuti `schema-reviewer` nad `V1__init_schema.sql` pre Faze 1. Posebno pitanje: seed kategorije u `V1` se izvršavaju i u produkciji, pa možda treba da pređu u zasebnu dev-only migraciju ili seed skriptu.
+- Pregled `V1` je urađen ručno (agent `schema-reviewer` nije bio dostupan u toj sesiji). Nalazi 1, 3 i 5 su u `V2`. Otvoreno: indeks za pretragu po nazivu, jedinstveno ime kategorije po roditelju, SKU bez razlike velikih i malih slova. Ako se plugin `backend-design` učita, može se pokrenuti i agent.
 - Odlučiti da li CI koristi `./mvnw` umesto `mvn`, da lokalna i CI verzija Mavena budu iste.
+- Node.js: u WSL-u nije instaliran (vidi se samo Windows `npm` preko `/mnt/c`). Instalirati Linux Node LTS u korisnički prostor pre celine 1.2.
+- OpenAPI (springdoc 3.2.0) radi sa Spring Boot 4.1.2. Pre deploya isključiti `/v3/api-docs` i Swagger UI u produkciji (`springdoc.api-docs.enabled=false`, `springdoc.swagger-ui.enabled=false`).
+- Poruka greške za neispravne parametre je trenutno opšta ("Validation failure"). Razmotriti detalje po polju kad krene frontend forme (celina 1.4).
 
 ## Urađeno
 
 - 2026-11-06: skelet generisan preko Spring Initializr-a (Spring Boot **4.1.2**, najnovija stabilna, umesto ranije planiranog 3.5.7). Prvi `./mvnw verify` prošao (Testcontainers 2.x, Flyway V1, Hibernate `validate`), a `/actuator/health` je `UP` protiv compose baze.
 - JDK 21 (Temurin 21.0.13) instaliran ručno u `~/.local/jdk`, jer SDKMAN traži `zip`, a `sudo` nije bio dostupan.
+- 2026-11-06: `V2` (ograničenja i indeksi) sa testovima, README kao izložba projekta, plan faza u `docs/ROADMAP.md`, MIT `LICENSE`. Faza 0 zatvorena.
