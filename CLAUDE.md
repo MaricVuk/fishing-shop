@@ -4,7 +4,7 @@ Pravila projekta. Učitavaju se na početku svake sesije, zato su kratka. Detalj
 
 ## Projekat
 
-Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izveštaji. Portfolio projekat, jedan autor, radi se **fazu po fazu** (faze su u `README.md`).
+Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izveštaji. Portfolio projekat, jedan autor, radi se **fazu po fazu** (faze su u `docs/ROADMAP.md`).
 
 **Imena:** repo `fishing-shop`, Java paket `rs.fishingshop`, Maven artifactId `fishing-shop`.
 
@@ -73,6 +73,6 @@ Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izv
 ## Faza je gotova kad
 
 - [ ] testovi prolaze (`mvn verify`, a za frontend i njegovi testovi)
-- [ ] README checklista faze je štiklirana
+- [ ] checklista faze u `docs/ROADMAP.md` je štiklirana, a tabela "Status" u `README.md` ažurirana
 - [ ] za svaku veću odluku postoji zapis u `docs/DECISIONS.md` ili ADR u `docs/adr/`
 - [ ] CLAUDE.md ima ažuriranu liniju "Trenutna faza"
