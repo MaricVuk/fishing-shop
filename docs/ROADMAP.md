@@ -12,12 +12,12 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [x] Integracioni test sa pravim Postgresom (Testcontainers)
 - [x] CI na svaki pull request i push na `main`
 
-## Faza 1: Katalog i porudžbina
+## Faza 1: Katalog i porudžbina (gotova)
 
-- [ ] Model: kategorija, proizvod, **varijante** (štap 2.4m / 2.7m / 3.0m, svaka sa svojim SKU, cenom i zalihom)
-- [ ] REST API: lista proizvoda, detalj, pretraga, filter po kategoriji, paginacija
-- [ ] Korpa i kreiranje porudžbine (bez plaćanja)
-- [ ] React frontend: lista, detalj, korpa, checkout
+- [x] Model: kategorija, proizvod, **varijante** (štap 2.4m / 2.7m / 3.0m, svaka sa svojim SKU, cenom i zalihom)
+- [x] REST API: lista proizvoda, detalj, pretraga, filter po kategoriji, paginacija
+- [x] Korpa i kreiranje porudžbine (bez plaćanja)
+- [x] React frontend: lista, detalj, korpa, checkout
 
 **Tehničke stvari na koje treba obratiti pažnju**
 - DTO naspram entiteta: entiteti nikad ne idu direktno u JSON
@@ -28,7 +28,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Paginacija i sortiranje na serveru, ne na klijentu
 - OpenAPI/Swagger dokumentacija API-ja
 
-## Faza 2: Magacin i konkurentnost
+## Faza 2: Magacin i konkurentnost (sledeća)
 
 - [ ] Zalihe po varijanti, smanjenje zalihe pri porudžbini u jednoj transakciji
 - [ ] Rešen problem "dva kupca, poslednji komad" (optimistic ili pessimistic locking)
@@ -82,12 +82,12 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 ## Kroz sve faze: kvalitet i inženjerske prakse
 
 - [ ] Testovi: unit, integracioni (Testcontainers), bar jedan end-to-end
-- [x] CI na svaki push i pull request (build + testovi)
+- [x] CI na svaki pull request i push na `main` (build + testovi)
 - [ ] Dockerfile za backend, ceo sistem podiže jedna komanda
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
 - [ ] Strukturirani logovi, health check, osnovne metrike (Actuator)
 - [ ] Deploy na javni link (README mora da ima link koji radi)
-- [ ] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/`
+- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md) i [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md))
 
 ## Otvorene odluke
 

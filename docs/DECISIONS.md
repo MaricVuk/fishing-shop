@@ -1,6 +1,6 @@
 # Odluke
 
-Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/`. Poslednje ažuriranje: 2026-11-06.
+Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md)). Poslednje ažuriranje: 2026-11-06.
 
 ## Odlučeno
 
@@ -43,7 +43,7 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Čitanje porudžbina | Nema `GET /api/orders/{id}` dok ne postoji prijava (Faza 3). Odgovor na kreiranje ne sadrži podatke o kupcu | gost + redni broj u URL-u bi otkrivao tuđa imena i adrese |
 | Zaliha u Fazi 1 | Porudžbina ne proverava i ne skida zalihu (to je Faza 2). Frontend ne dozvoljava dodavanje varijante koja nema na stanju | zaliha mora da se rešava atomski, ne dvaput |
 | Greške validacije | `400` sa listom `errors: [{field, code}]` (šifre Bean Validation-a), frontend ih prevodi na srpski | poruke na jeziku shopa žive u UI-ju, ne u API-ju |
-| Nedostupne stavke | `422` sa `unavailableVariantIds`, a porudžbina se ne upisuje ni delimično | cela porudžbina je jedna transakcija |
+| Odbijene porudžbine | `422` sa `unavailableVariantIds` (varijanta ne postoji ili je neaktivna), sa `variantId` (zbir iznad 99 komada) ili samo sa opštom porukom (ukupna cena ne staje u kolonu). Porudžbina se ne upisuje ni delimično | cela porudžbina je jedna transakcija |
 | Korpa | `localStorage` čuva samo `variantId` i količinu, a trenutne podatke daje `GET /api/variants?ids=` | nikad zastarele cene u korpi |
 | Mejl u porudžbini | Server ne "popravlja" razmake oko mejla, odbija ga sa `400`. Frontend ga čisti pre slanja | tihe ispravke kriju greške |
 | Spajanje stavki | Duplirane varijante u porudžbini se spajaju, najviše 99 komada po stavci | klijent ne mora da vodi računa o duplikatima |
@@ -52,6 +52,11 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Potvrda porudžbine | Odgovor servera (bez podataka o kupcu) ide u `sessionStorage` i prikazuje se na `/checkout/success` | nema javnog čitanja porudžbina |
 | Validacija forme | Ista pravila na klijentu (poruke na srpskom) i na serveru (šifre grešaka). Server je merodavan | brza povratna informacija, a bezbednost je na serveru |
 | Blokiranje u korpi | Korpa sa nedostupnom stavkom ili stavkom bez zalihe ne može na završetak porudžbine | server u Fazi 1 ne proverava zalihu |
+| Konfiguracija bez podrazumevanih vrednosti | Bez profila `dev` backend traži `DB_URL`, `DB_USER` i `DB_PASSWORD`, a Swagger je isključen. Razvojne vrednosti i Swagger su u `application-dev.yml` | zaboravljena promenljiva ne sme tiho da koristi slabu lozinku iz javnog repoa |
+| Ograničenje ulaza | Telo zahteva do 32 KB (`413`), `page` do 9999, bez kontrolnih znakova u poljima kupca, razlomljeni brojevi se odbijaju, ukupna cena mora da stane u kolonu (`422`) | server ne prima neispravne podatke i ne ispravlja ih tiho |
+| Neočekivane greške | `500` u `ProblemDetail` formatu sa opštom porukom, detalji samo u logu | jedan format grešaka i bez curenja unutrašnjosti |
+| Bezbednosna zaglavlja frontenda | `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` i CSP samo sa direktivama bez skripti (`frame-ancestors`, `base-uri`, `object-src`, `form-action`), bez `X-Powered-By` | pun CSP traži nonce za Next.js skripte, pa je za kasnije |
+| Dev seed | Samo ubacuje podatke (`ON CONFLICT DO NOTHING`), a Flyway ignoriše nedostajuću repeatable migraciju | isključivanje `dev` profila ne sme da sruši start na istoj bazi |
 
 ## Plan za sub-agente po fazama
 
@@ -75,27 +80,42 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Plaćanje karticom | verovatno van opsega | portfolio ne mora da prima pravi novac |
 | Više jezika (i18n) | samo ako zatreba | |
 
-## Za proveru
+## Dug i otvorene stvari
 
-- Obrisati folder `reference/` (autor). Sadržaj je preuzet u skelet.
-- Pregled `V1` je urađen ručno (agent `schema-reviewer` nije bio dostupan u toj sesiji). Nalazi 1, 3 i 5 su u `V2`. Otvoreno: indeks za pretragu po nazivu, jedinstveno ime kategorije po roditelju, SKU bez razlike velikih i malih slova. Ako se plugin `backend-design` učita, može se pokrenuti i agent.
-- Odlučiti da li CI koristi `./mvnw` umesto `mvn`, da lokalna i CI verzija Mavena budu iste.
-- Frontend izgled nije vizuelno proveren u svetloj temi i na telefonu (Chrome ne dozvoljava prozor uži od oko 500 px). Pogledati na pravom telefonu ili kroz DevTools.
-- Slike proizvoda: dok `image_url` nije popunjen, kartice imaju rezervnu sliku. Izgled kataloga zavisi od pravih fotografija.
-- `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa (bez visokih), uglavnom preko razvojnih alata. Pratiti ih kroz Dependabot.
-- OpenAPI (springdoc 3.2.0) radi sa Spring Boot 4.1.2. Pre deploya isključiti `/v3/api-docs` i Swagger UI u produkciji (`springdoc.api-docs.enabled=false`, `springdoc.swagger-ui.enabled=false`).
-- Greške validacije upita (`/api/products?size=0`) i dalje imaju opštu poruku bez detalja po polju. Greške tela porudžbine već imaju listu po polju.
-- Dvostruko slanje porudžbine (dupli klik): frontend onemogućava dugme, a prava zaštita je idempotentni ključ (Faza 4).
-- Zaštita od spama na `POST /api/orders` (ograničenje učestalosti): uz prijavu u Fazi 3.
+Pregled na kraju Faze 1. Nijedna stavka ne blokira Fazu 2.
+
+| Stvar | Zašto je bitno | Kad |
+|---|---|---|
+| Zaliha pri porudžbini (provera i atomsko skidanje) | sada se može poručiti više nego što ima na stanju | **Faza 2** |
+| Idempotentni ključ za porudžbinu | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | Faza 4 |
+| Ograničenje učestalosti na `POST /api/orders` | spam porudžbine | uz prijavu, Faza 3 |
+| Svetla tema i telefon nisu vizuelno provereni (Chrome ne dozvoljava prozor uži od oko 500 px) | izgled je deo portfolija | pre deploya, na pravom telefonu ili kroz DevTools |
+| Slike proizvoda (`image_url` je prazan, kartice imaju rezervnu sliku) | izgled kataloga zavisi od fotografija | pre deploya |
+| Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | pre deploya |
+| Dockerfile za backend i frontend, ceo sistem jednom komandom | ROADMAP to obećava | pre deploya |
+| End-to-end test cele kupovine (npr. Playwright) | ručna provera nije regresioni test | pre deploya |
+| Strukturirani logovi i metrike (Actuator izlaže samo `health` i `info`) | lakši rad u produkciji | Faza 4 ili 5 |
+| Dependabot (`.github/dependabot.yml`). `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa, bez visokih | zavisnosti zastarevaju | uskoro |
+| CI koristi `mvn`, lokalno `./mvnw`. `ubuntu-latest` prelazi na Ubuntu 26 | ista verzija Mavena i stabilan runner | kad bude zgodno |
+| Indeks za pretragu po nazivu (`pg_trgm`) | `LIKE '%x%'` ne koristi običan indeks, pa je sporo na velikom katalogu | kad katalog naraste |
+| Jedinstveno ime kategorije po roditelju, SKU bez razlike velikih i malih slova | otvoreno iz pregleda šeme | kad krenu potkategorije |
+| Greške validacije upita (`/api/products?size=0`) imaju opštu poruku bez detalja po polju | tela porudžbine već imaju listu po polju | nizak prioritet |
+| Agent `schema-reviewer` nije bio dostupan, pregled `V1` je urađen ručno | drugo mišljenje | ako se plugin `backend-design` učita |
+| Ime vlasnika u `LICENSE` je GitHub nalog | javno je vidljivo | po želji |
+| Proxy `/api/*` koji čita adresu backenda u runtime-u (route handler umesto `rewrites`, samo `GET /api/variants` i `POST /api/orders`) | adresa se ugrađuje pri build-u, pa jedna slika ne radi u više okruženja | pre deploya |
+| Actuator na posebnom portu i backend dostupan samo Next serveru | `rewrites` nisu bezbednosna granica | pre deploya |
+| Pun CSP sa nonce-om i pinovanje akcija po SHA uz Dependabot | dodatna odbrana | pre deploya |
+| `server.forward-headers-strategy` i `X-Forwarded-For` za ograničenje učestalosti | iza proxy-ja svi korisnici dolaze sa IP adrese Next servera | Faza 3 |
+| Test koji potvrđuje rollback porudžbine bez `@Transactional` na testu | postojeći testovi dokazuju samo da validacija ide pre upisa | Faza 2, uz skidanje zalihe |
+| Uzastopni brojevi porudžbina otkrivaju obim prodaje | konkurent iz dve porudžbine računa koliko ih ima | Faza 3, javni nasumični token |
 
 ## Urađeno
 
-- 2026-11-06: skelet generisan preko Spring Initializr-a (Spring Boot **4.1.2**, najnovija stabilna, umesto ranije planiranog 3.5.7). Prvi `./mvnw verify` prošao (Testcontainers 2.x, Flyway V1, Hibernate `validate`), a `/actuator/health` je `UP` protiv compose baze.
-- JDK 21 (Temurin 21.0.13) instaliran ručno u `~/.local/jdk`, jer SDKMAN traži `zip`, a `sudo` nije bio dostupan.
-- 2026-11-06: celina 1.1 spojena (PR #4): `V3` (`image_url`), dev seed kroz repeatable migraciju, API kategorija i liste proizvoda, springdoc 3.2.0.
-- 2026-11-06: celina 1.5 (frontend porudžbine): dugme "Dodaj u korpu", korpa u `localStorage`, stranice `/cart`, `/checkout` i `/checkout/success`, broj komada u zaglavlju, greške po polju na srpskom. 106 frontend testova. Proverena cela kupovina u browseru.
-- 2026-11-06: celina 1.4 (backend porudžbine): `POST /api/orders` (kopira naziv, SKU i cenu u stavke, ukupno u `BigDecimal`, jedna transakcija), `GET /api/variants?ids=` za korpu, greške po polju i `422` za nedostupne stavke. 40 testova.
-- 2026-11-06: celina 1.3: `GET /api/products/{id}` (proizvod, kategorija, varijante sa dostupnošću, 2 SQL upita), stranica detalja sa putanjom, kartica je link, prava 404 stranica. Demo vrednosti atributa prevedene na srpski.
-- 2026-11-06: celina 1.2: Next.js frontend sa listom proizvoda (pretraga, kategorije, sortiranje, paginacija), 32 testa, frontend posao u CI-ju. GitHub akcije podignute na `checkout@v7`, `setup-java@v6`, `setup-node@v7`.
-- 2026-11-06: Node.js v26.13.0 (LTS) instaliran u `~/.local/node`, jer je WSL do tada video samo Windows `npm` preko `/mnt/c`.
-- 2026-11-06: `V2` (ograničenja i indeksi) sa testovima, README kao izložba projekta, plan faza u `docs/ROADMAP.md`, MIT `LICENSE`. Faza 0 zatvorena.
+- **Faza 0** (2026-11-06): skelet preko Spring Initializr-a (Spring Boot 4.1.2, najnovija stabilna umesto planiranog 3.5.7), `V1` iz `reference/`, `V2` (ograničenja i indeksi) sa testovima, README, plan u `docs/ROADMAP.md`, MIT `LICENSE`. JDK 21.0.13 je instaliran ručno u `~/.local/jdk` (SDKMAN traži `zip`, a `sudo` nije bio dostupan), a Node.js 26.13.0 u `~/.local/node` (WSL je video samo Windows `npm`).
+- **1.1**: `V3` (`image_url`), dev seed kroz repeatable migraciju, `GET /api/categories` i `GET /api/products` (pretraga, filter, sortiranje, paginacija, 2 SQL upita), springdoc 3.2.0.
+- **1.2**: Next.js frontend sa listom proizvoda, frontend posao u CI-ju, GitHub akcije na `checkout@v7`, `setup-java@v6`, `setup-node@v7`.
+- **1.3**: `GET /api/products/{id}`, stranica detalja sa putanjom, kartica je link, prava 404 stranica.
+- **1.4**: `POST /api/orders` (kopira naziv, SKU i cenu u stavke, ukupno u `BigDecimal`, jedna transakcija), `GET /api/variants?ids=`, greške po polju i `422`.
+- **1.5**: korpa u `localStorage`, `/cart`, `/checkout`, `/checkout/success`, broj komada u zaglavlju. Cela kupovina proverena u browseru.
+- **1.6, Faza 1 zatvorena**: ROADMAP checklista, status u README-u, ADR 0001 i 0002, pregled duga, `CLAUDE.md` na Fazu 2.
+- **Revizija Faze 1** (4 paralelna recenzenta: backend, bezbednost, frontend, testovi i dokumenta, svaki nalaz proveren u kodu ili stvarnim zahtevom): nije bilo P0. Ispravljeno: stranica greške nije ponovo učitavala podatke, `500` bez `ProblemDetail` formata, neograničen `page` i telo zahteva, kontrolni znakovi i razlomljeni brojevi u porudžbini, podrazumevana lozinka i Swagger u svim profilima, fokus i pristupačnost korpe i forme, kontrast, bezbednosna zaglavlja, slabi testovi i netačnosti u dokumentima. Odbačeno: izlazak iz `/api/*` kroz proxy (5 varijanti, sve 404 ili 400) i NUL u pretrazi (vraća 200). 53 backend i 110 frontend testova.
