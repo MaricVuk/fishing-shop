@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @Transactional
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
-class CatalogApiTests extends PostgresIntegrationTest {
+class CatalogApiTests extends CatalogTestSupport {
 
     @Autowired
     MockMvc mvc;
-
-    @Autowired
-    JdbcTemplate jdbc;
 
     @Autowired
     EntityManagerFactory entityManagerFactory;
@@ -154,7 +150,8 @@ class CatalogApiTests extends PostgresIntegrationTest {
         mvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/products']").exists())
-                .andExpect(jsonPath("$.paths['/api/categories']").exists());
+                .andExpect(jsonPath("$.paths['/api/categories']").exists())
+                .andExpect(jsonPath("$.paths['/api/products/{id}']").exists());
     }
 
     @Test
@@ -176,20 +173,5 @@ class CatalogApiTests extends PostgresIntegrationTest {
 
         assertThat(smallPage).isEqualTo(2);
         assertThat(largePage).isEqualTo(2);
-    }
-
-    private long product(String categorySlug, String name, String brand, boolean active) {
-        return jdbc.queryForObject("""
-                INSERT INTO products (category_id, name, brand, active)
-                VALUES ((SELECT id FROM categories WHERE slug = ?), ?, ?, ?) RETURNING id
-                """, Long.class, categorySlug, name, brand, active);
-    }
-
-    private void variant(long productId, String sku, String price, boolean active, int stock) {
-        long variantId = jdbc.queryForObject("""
-                INSERT INTO product_variants (product_id, sku, attributes, price, active)
-                VALUES (?, ?, jsonb_build_object('sku', ?::text), ?::numeric, ?) RETURNING id
-                """, Long.class, productId, sku, sku, price, active);
-        jdbc.update("INSERT INTO inventory (variant_id, quantity) VALUES (?, ?)", variantId, stock);
     }
 }

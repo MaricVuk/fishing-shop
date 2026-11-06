@@ -13,10 +13,13 @@ public class CatalogService {
 
     private final CategoryRepository categories;
     private final ProductRepository products;
+    private final ProductVariantRepository variants;
 
-    public CatalogService(CategoryRepository categories, ProductRepository products) {
+    public CatalogService(
+            CategoryRepository categories, ProductRepository products, ProductVariantRepository variants) {
         this.categories = categories;
         this.products = products;
+        this.variants = variants;
     }
 
     public List<CategoryResponse> listCategories() {
@@ -28,6 +31,15 @@ public class CatalogService {
         String categoryFilter = category == null ? "%" : category;
         String pattern = "%" + escapeLike(query == null ? "" : query.trim().toLowerCase(Locale.ROOT)) + "%";
         return PageResponse.from(products.search(categoryFilter, pattern, PageRequest.of(page, size, sort.toSort())));
+    }
+
+    public ProductDetail getProduct(Long id) {
+        Product product = products.findActiveWithCategory(id).orElseThrow(() -> new ProductNotFoundException(id));
+        List<VariantResponse> activeVariants = variants.findActiveByProductId(id);
+        if (activeVariants.isEmpty()) {
+            throw new ProductNotFoundException(id);
+        }
+        return ProductDetail.of(product, activeVariants);
     }
 
     private static String escapeLike(String value) {
