@@ -25,20 +25,19 @@ Težište projekta:
 | Backend | Java 21, Spring Boot 4.1, Spring Data JPA |
 | Baza | PostgreSQL 16, Flyway migracije |
 | Frontend | TypeScript, Next.js 16, Tailwind CSS 4, shadcn/ui |
-| Red poslova | RabbitMQ (Faza 4) |
+| Red poslova | tabela u PostgreSQL-u, worker u Spring Boot-u (Faza 4) |
 | Testovi | JUnit 6, Testcontainers, Vitest |
 | Infrastruktura | Docker, GitHub Actions |
 
 ## Arhitektura
 
 ```
-[Shop (Next.js)]  ──►  [Spring Boot API]  ──►  [PostgreSQL]
-[Admin panel]     ──►        │
-                             ▼
-                       [RabbitMQ red]  ──►  [Worker: mejl, PDF račun, magacin]
+[Shop (Next.js)] ─┐
+                  ├──►  [Spring Boot: API + worker (mejl, PDF)]  ──►  [PostgreSQL: podaci + tabela poslova]
+[Admin panel]    ─┘
 ```
 
-Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Trenutno postoje Next.js shop, Spring Boot API i PostgreSQL, a admin panel i RabbitMQ dolaze po fazama.
+Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Trenutno postoje Next.js shop sa admin panelom, Spring Boot API i PostgreSQL, a pozadinski poslovi dolaze u Fazi 4 ([ADR 0006](docs/adr/0006-job-queue-in-postgres.md)).
 
 ## Status
 
@@ -48,7 +47,7 @@ Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine,
 | 1 | Katalog i porudžbina | Gotova |
 | 2 | Magacin i konkurentnost | Gotova |
 | 3 | Zaposleni, uloge, audit log | Gotova |
-| 4 | Pozadinski poslovi | Sledeća |
+| 4 | Pozadinski poslovi | U toku |
 | 5 | Izveštaji, dashboard, uživo obaveštenja | Planirana |
 
 Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja). Zaliha se proverava i skida pri porudžbini pod zaključavanjem reda, pa ni 50 istovremenih kupaca ne mogu da kupe više nego što ima, a svaka promena zalihe ostaje u istoriji ([ADR 0003](docs/adr/0003-pessimistic-locking-for-stock.md)). Zaposleni se prijavljuju na `/admin` (sesija u bazi, uloge vlasnik, prodavac i magacioner), vode porudžbine i magacin, a svaka izmena ostaje u audit logu koji se ne može menjati ni brisati ([ADR 0004](docs/adr/0004-employee-login-with-server-sessions.md), [ADR 0005](docs/adr/0005-append-only-audit-log.md)).

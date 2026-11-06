@@ -1,6 +1,6 @@
 # Odluke
 
-Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [0005 audit log](adr/0005-append-only-audit-log.md)). Poslednje ažuriranje: 2026-11-06.
+Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [0005 audit log](adr/0005-append-only-audit-log.md), [0006 red poslova u Postgresu](adr/0006-job-queue-in-postgres.md)). Poslednje ažuriranje: 2026-11-06.
 
 ## Odlučeno
 
@@ -71,6 +71,7 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Email zaposlenog | Samo običan ASCII, najviše 100 znakova | baza i Java različito spuštaju neka slova, pa bi isti nalog imao više "pisanja" |
 | Gašenje sesija | Promena uloge, isključenje naloga i nova lozinka brišu sesije tog zaposlenog običnim SQL-om u istoj transakciji, a ne kroz Spring Session repozitorijum | repozitorijum briše u svojoj transakciji, pa bi poništena izmena ipak odjavila zaposlenog (uhvaćeno testom) |
 | Lozinke zaposlenih | 12 do 64 znaka i najviše 72 bajta | BCrypt čita samo prva 72 bajta, pa bi duža lozinka bila tiho skraćena |
+| Red poslova (Faza 4) | Tabela u Postgresu: posao se upisuje u istoj transakciji kao porudžbina (outbox), worker u istom procesu uzima poslove sa `FOR UPDATE SKIP LOCKED`, backoff i stanje `DEAD`. Bez RabbitMQ-a ([ADR 0006](adr/0006-job-queue-in-postgres.md)) | mali obim, atomičnost iz baze, nijedan novi servis za testove i deploy; izazvano agentom `boring-tech-advisor` |
 
 ## Plan za sub-agente po fazama
 
@@ -87,7 +88,6 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 
 | Tema | Kad | Napomena |
 |---|---|---|
-| Red poslova (RabbitMQ ili jednostavnije) | Faza 4 | prvo ga izazovi `boring-tech-advisor` agentom |
 | Gde se deploy-uje (Fly.io, Render, Railway, VPS) | pre prvog deploya | mora da ima javni link |
 | Konačan naziv shopa | pre deploya | trenutno radni naslov |
 | Plaćanje karticom | verovatno van opsega | portfolio ne mora da prima pravi novac |
@@ -154,3 +154,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 - **3.4**: porudžbine u adminu za vlasnika i prodavca: lista sa filterom po statusu i pretragom (broj, ime, email), detalj sa kupcem i istorijom, promena statusa po pravilima (`409` za nedozvoljen korak), otkazivanje vraća zalihu (`V7`: tip `RETURN`, jedinstven indeks, nove akcije u auditu, indeksi za listu). Ograničenje javnih porudžbina po adresi. Testovi: 10 istovremenih otkazivanja daju jedno vraćanje zalihe (mutacioni test bez zaključavanja pada), rollback kad audit ne može da se upiše, stara porudžbina bez skinute zalihe. Provereno kroz Next proxy na dev bazi. 117 backend i 152 frontend testa.
 - **3.5**: zaposleni i audit log u adminu. `V8` (akcije za naloge, indeksi). `/api/admin/employees` i `/api/admin/audit` samo za vlasnika, `POST /api/auth/password` za svakog. Stranice: zaposleni (lista, dodavanje), detalj zaposlenog (uloga, pristup, nova lozinka, istorija), Moj nalog, Audit log sa filterom. Test je našao da Spring Session briše sesije van transakcije; ispravljeno. Mutacioni test bez zaključavanja vlasnika pada u 3 od 3 pokretanja. Provereno kroz Next proxy na dev bazi. 130 backend i 160 frontend testova.
 - **3.6, sigurnosni pregled Faze 3** (4 nezavisna recenzenta na Opus-u, samo čitanje: prijava i sesije, autorizacija i API, baza i podaci, admin frontend; 36 nalaza, svaki proveren u kodu ili stvarnim zahtevom). **Dva P1, oba potvrđena i ispravljena:** (1) ograničenje prijave se zaobilazilo kodiranom putanjom (`/api/auth/%6Cogin` je posle zaključavanja dao `200` sa tačnom lozinkom; isto za ograničenje porudžbina), (2) prijava koja je u toku dok vlasnik isključuje ili menja nalog dobijala je sesiju koja je trajala do 8 sati (test sa zaustavljenom prijavom, bez filtera `200`). **Četiri P2, ispravljena:** različito spuštanje slova (`İ`) davalo je svakom zapisu emaila svoj budžet pokušaja, neograničen rast mape brojača (email do 2 MB), zaključavanje vlasnika sa tuđe adrese (sada par 5 / email 100 / adresa 50), i popis koji je brojao policu kao slobodnu zalihu. **Ostalo (P3):** ispravljeno ili upisano kao dug gore (`__Host-`, ponovni unos lozinke, vlasnik-vlasniku, nepokrivene prijave, superkorisnik baze). Odbačeno ili samo dokumentovano: nijedan nalog nije odbačen kao netačan, a tri su ostala kao poznati kompromis. Usput nađena moja greška iz 3.4: istorija zaliha nije imala naziv za tip `RETURN`. Migracija `V9` (verzija sesije, jedinstven `OUT` po porudžbini i varijanti, `CHECK` na zalihu, dva neiskorišćena indeksa uklonjena). Mutacioni testovi: bez filtera stanja zaposlenog svih 5 testova sesija pada.
+- **4.0, odluka o redu poslova**: agent `boring-tech-advisor` (definicija iz plugina `backend-design`, pokrenut kao opšti agent jer plugin nije učitan) izazvao je RabbitMQ. Presuda: red u Postgresu. [ADR 0006](adr/0006-job-queue-in-postgres.md), stack u `CLAUDE.md`, README-u i ROADMAP-u više ne pominje RabbitMQ.

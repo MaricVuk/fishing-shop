@@ -61,9 +61,9 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [ADR 0005](adr/0005-append-only-audit-log.md): audit log kojem trigger u bazi ne dozvoljava izmenu ni brisanje
 - Sigurnosni pregled sa 4 nezavisna recenzenta (36 nalaza); ostatak je zapisan kao dug u [DECISIONS.md](DECISIONS.md)
 
-## Faza 4: Pozadinski poslovi (sledeća)
+## Faza 4: Pozadinski poslovi (u toku)
 
-- [ ] RabbitMQ red, worker servis
+- [ ] Red poslova u Postgresu (outbox), worker ([ADR 0006](adr/0006-job-queue-in-postgres.md))
 - [ ] Mejl potvrde, generisanje PDF računa
 - [ ] Retry sa exponential backoff-om, dead-letter red
 
