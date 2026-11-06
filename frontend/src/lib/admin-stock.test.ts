@@ -35,6 +35,7 @@ describe("movementLabel", () => {
     expect(movementLabel("IN")).toBe("Prijem");
     expect(movementLabel("OUT")).toBe("Porudžbina");
     expect(movementLabel("ADJUSTMENT")).toBe("Popis");
+    expect(movementLabel("RETURN")).toBe("Povraćaj");
   });
 });
 

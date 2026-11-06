@@ -17,6 +17,7 @@ public final class EmployeePrincipal implements UserDetails, CredentialsContaine
     private final String fullName;
     private final EmployeeRole role;
     private final boolean active;
+    private final int sessionVersion;
     private String passwordHash;
 
     EmployeePrincipal(Employee employee) {
@@ -25,6 +26,7 @@ public final class EmployeePrincipal implements UserDetails, CredentialsContaine
         this.fullName = employee.getFullName();
         this.role = employee.getRole();
         this.active = employee.isActive();
+        this.sessionVersion = employee.getSessionVersion();
         this.passwordHash = employee.getPasswordHash();
     }
 
@@ -38,6 +40,10 @@ public final class EmployeePrincipal implements UserDetails, CredentialsContaine
 
     public EmployeeRole getRole() {
         return role;
+    }
+
+    int getSessionVersion() {
+        return sessionVersion;
     }
 
     public AuditActor toAuditActor() {

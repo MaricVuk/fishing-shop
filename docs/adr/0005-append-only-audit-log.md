@@ -26,7 +26,7 @@ Dobro:
 
 Loše:
 
-- Vlasnik tabele u bazi može da isključi trigger (`ALTER TABLE ... DISABLE TRIGGER`). Aplikacija se trenutno povezuje kao vlasnik šeme, pa je zaštita jaka samo protiv grešaka i nepažnje, ne protiv nekoga ko ima lozinku baze. Pravo rešenje je poseban korisnik baze za aplikaciju, bez prava na `ALTER` (dug pred deploy). Testovi baš tako čiste tabelu između testova.
+- Zaštita važi protiv grešaka i nepažnje, ne protiv onoga ko ima lozinku baze. Aplikacija se povezuje kao `shop`, a taj nalog u zvaničnoj slici `postgres` je **superkorisnik**: može da isključi trigger (`ALTER TABLE ... DISABLE TRIGGER`), da ga zaobiđe sa `SET session_replication_role = replica` ili da zameni funkciju. Pravo rešenje je poseban nalog za aplikaciju, bez superkorisničkih prava i bez `ALTER`, sa `SELECT` i `INSERT` na `audit_log`, i drugi nalog za Flyway (dug pred deploy). Testovi baš tako čiste tabelu između testova.
 - JSONB nije tipiziran: neispravan sadržaj bi se video tek pri čitanju. Baza proverava samo da je vrednost objekat.
 - Tabela samo raste. Arhiviranje starih redova nije u planu.
 

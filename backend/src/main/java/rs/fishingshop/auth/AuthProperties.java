@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 record AuthProperties(
         boolean secureCookies,
         Duration sessionMaxAge,
+        int maxFailuresPerPair,
         int maxFailuresPerEmail,
         int maxFailuresPerAddress,
         Duration failureWindow) {

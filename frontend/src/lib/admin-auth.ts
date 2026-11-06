@@ -2,13 +2,22 @@ const ADMIN_HOME = "/admin";
 const LOGIN_PATH = "/admin/login";
 
 export function safeNextPath(raw: string | null | undefined): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) {
+  if (!raw || /[\u0000-\u001f\u007f\\]/.test(raw) || !raw.startsWith("/") || raw.startsWith("//")) {
     return ADMIN_HOME;
   }
-  const path = raw.split(/[?#]/)[0];
+
+  let url: URL;
+  try {
+    url = new URL(raw, "http://local");
+  } catch {
+    return ADMIN_HOME;
+  }
+  if (url.origin !== "http://local") return ADMIN_HOME;
+
+  const path = url.pathname;
   const isAdmin = path === ADMIN_HOME || path.startsWith(`${ADMIN_HOME}/`);
   if (!isAdmin || path === LOGIN_PATH || path.startsWith(`${LOGIN_PATH}/`)) return ADMIN_HOME;
-  return raw;
+  return `${path}${url.search}`;
 }
 
 export function loginErrorMessage(status: number, retryAfterSeconds: number | null): string {

@@ -17,9 +17,22 @@ describe("safeNextPath", () => {
       "/administrator",
       "/admin/login",
       "javascript:alert(1)",
+      "/admin/../products",
+      "/admin/%2e%2e/products",
+      "/admin/../..//evil.example",
+      "/admin/\r\nSet-Cookie: x=1",
+      "/admin\t/x",
+      "/admin/login/../login",
     ]) {
       expect(safeNextPath(raw)).toBe("/admin");
     }
+  });
+});
+
+describe("safeNextPath keeps what the browser would navigate to", () => {
+  it("returns the normalized path and query", () => {
+    expect(safeNextPath("/admin/./orders/7?status=NEW#top")).toBe("/admin/orders/7?status=NEW");
+    expect(safeNextPath("/admin/orders/../stock")).toBe("/admin/stock");
   });
 });
 

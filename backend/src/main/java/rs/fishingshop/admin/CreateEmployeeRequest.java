@@ -11,7 +11,7 @@ import rs.fishingshop.auth.PasswordRules;
 import rs.fishingshop.employees.EmployeeRole;
 
 record CreateEmployeeRequest(
-        @NotBlank @Size(max = 100) @Email(regexp = ".+@.+\\..+") @Pattern(regexp = InputPatterns.SINGLE_LINE_TEXT)
+        @NotBlank @Size(max = 100) @Email(regexp = ".+@.+\\..+") @Pattern(regexp = "[\\x21-\\x7e]+")
         String email,
         @NotBlank @Size(max = 150) @Pattern(regexp = InputPatterns.SINGLE_LINE_TEXT) String fullName,
         @NotNull EmployeeRole role,

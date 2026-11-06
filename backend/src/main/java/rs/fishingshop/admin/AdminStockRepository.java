@@ -12,7 +12,10 @@ interface AdminStockRepository extends Repository<ProductVariant, Long> {
 
     @Query(value = """
             select new rs.fishingshop.admin.StockRow(
-                v.id, p.id, p.name, p.brand, v.sku, v.attributes, v.price, v.active, p.active, i.quantity)
+                v.id, p.id, p.name, p.brand, v.sku, v.attributes, v.price, v.active, p.active, i.quantity,
+                (select coalesce(-sum(m.quantityChange), 0) from StockMovement m, CustomerOrder o
+                 where o.id = m.orderId and m.variantId = v.id
+                   and o.status in (rs.fishingshop.orders.OrderStatus.NEW, rs.fishingshop.orders.OrderStatus.CONFIRMED)))
             from ProductVariant v
             join v.product p
             left join Inventory i on i.variantId = v.id
@@ -32,7 +35,10 @@ interface AdminStockRepository extends Repository<ProductVariant, Long> {
 
     @Query("""
             select new rs.fishingshop.admin.StockRow(
-                v.id, p.id, p.name, p.brand, v.sku, v.attributes, v.price, v.active, p.active, i.quantity)
+                v.id, p.id, p.name, p.brand, v.sku, v.attributes, v.price, v.active, p.active, i.quantity,
+                (select coalesce(-sum(m.quantityChange), 0) from StockMovement m, CustomerOrder o
+                 where o.id = m.orderId and m.variantId = v.id
+                   and o.status in (rs.fishingshop.orders.OrderStatus.NEW, rs.fishingshop.orders.OrderStatus.CONFIRMED)))
             from ProductVariant v
             join v.product p
             left join Inventory i on i.variantId = v.id

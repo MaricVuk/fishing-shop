@@ -53,6 +53,23 @@ class OwnerBootstrapTests extends EmployeeTestSupport {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM employees", Integer.class)).isZero();
     }
 
+    @Test
+    void lowercasesTheEmailAndRefusesOneThatDoesNotFitTheColumn() {
+        bootstrap("Prvi@Fishing-Shop.TEST", "a-long-enough-password").run(new DefaultApplicationArguments());
+
+        assertThat(jdbc.queryForList("SELECT email FROM employees", String.class))
+                .containsExactly("prvi@fishing-shop.test");
+
+        clearAuditLog();
+        jdbc.update("DELETE FROM employees");
+        assertThatThrownBy(() -> bootstrap("a".repeat(120) + "@fishing-shop.test", "a-long-enough-password")
+                .run(new DefaultApplicationArguments())).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> bootstrap("not-an-email", "a-long-enough-password")
+                .run(new DefaultApplicationArguments())).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> bootstrap("ok@fishing-shop.test", "\u0161".repeat(40))
+                .run(new DefaultApplicationArguments())).isInstanceOf(IllegalStateException.class);
+    }
+
     private OwnerBootstrap bootstrap(String email, String password) {
         return new OwnerBootstrap(employees, passwordEncoder, new OwnerBootstrapProperties(email, password, null));
     }

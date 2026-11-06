@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.ProviderManager;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
@@ -36,13 +38,13 @@ class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http, ProblemWriter problems, LoginAttemptLimiter limiter, AuthProperties properties,
-            OrderRateLimitProperties orderLimits) {
+            OrderRateLimitProperties orderLimits, JdbcTemplate jdbc) {
         http
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*", "/api/categories",
                                 "/api/variants").permitAll()
-                        .requestMatchers("/api/orders", "/api/orders/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                         .requestMatchers(LOGIN).permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/password", LOGOUT, "/api/admin/**").authenticated()
@@ -52,7 +54,8 @@ class SecurityConfig {
                         .anyRequest().denyAll())
                 .csrf(csrf -> csrf.spa()
                         .csrfTokenRepository(csrfTokenRepository(properties))
-                        .ignoringRequestMatchers("/api/orders"))
+                        .ignoringRequestMatchers(
+                                PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/orders")))
                 .requestCache(cache -> cache.disable())
                 .formLogin(form -> form
                         .loginPage(LOGIN)
@@ -61,7 +64,7 @@ class SecurityConfig {
                         .passwordParameter("password")
                         .successHandler((request, response, authentication) -> {
                             EmployeePrincipal principal = (EmployeePrincipal) authentication.getPrincipal();
-                            limiter.recordSuccess(principal.getUsername());
+                            limiter.recordSuccess(principal.getUsername(), request.getRemoteAddr());
                             problems.writeJson(response, MeResponse.from(principal));
                         })
                         .failureHandler((request, response, exception) -> {
@@ -80,7 +83,8 @@ class SecurityConfig {
                                 problems.write(request, response, HttpStatus.FORBIDDEN, "Access denied")))
                 .addFilterBefore(new LoginRateLimitFilter(limiter, problems), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new OrderRateLimitFilter(orderLimits, problems), UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new SessionAgeFilter(properties.sessionMaxAge()), SecurityContextHolderFilter.class);
+                .addFilterBefore(new SessionAgeFilter(properties.sessionMaxAge()), SecurityContextHolderFilter.class)
+                .addFilterAfter(new EmployeeStateFilter(jdbc), SecurityContextHolderFilter.class);
         return http.build();
     }
 

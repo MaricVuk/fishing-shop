@@ -1,6 +1,7 @@
 package rs.fishingshop.auth;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import org.springframework.http.HttpHeaders;
@@ -61,10 +62,14 @@ class AuthController {
                 }
             };
         }
-        if (!accounts.changePassword(principal, request, http.getSession().getId())) {
-            limiter.recordFailure(principal.getUsername(), http.getRemoteAddr());
+        if (!accounts.changePassword(principal, request)) {
+            limiter.recordPasswordFailure(principal.getUsername(), http.getRemoteAddr());
             throw AccountService.wrongCurrentPassword();
         }
-        limiter.recordSuccess(principal.getUsername());
+        limiter.recordSuccess(principal.getUsername(), http.getRemoteAddr());
+        HttpSession session = http.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
     }
 }

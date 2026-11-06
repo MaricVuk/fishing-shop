@@ -8,10 +8,18 @@ import { SHOP_NAME } from "@/lib/config";
 export const metadata: Metadata = { title: "Prijava" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/admin/login">) {
-  const raw = (await searchParams).next;
+  const params = await searchParams;
+  const raw = params.next;
   const next = safeNextPath(Array.isArray(raw) ? raw[0] : raw);
+  const changed = params.changed === "1";
 
-  if (await getCurrentEmployee()) redirect(next);
+  let employee = null;
+  try {
+    employee = await getCurrentEmployee();
+  } catch {
+    employee = null;
+  }
+  if (employee) redirect(next);
 
   return (
     <main id="sadrzaj" tabIndex={-1} className="flex flex-1 items-center justify-center px-4 py-16 outline-none">
@@ -21,6 +29,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
         <p className="mt-2 text-sm text-muted-foreground">
           Prijavite se nalogom koji vam je dao vlasnik radnje.
         </p>
+        {changed && (
+          <p role="status" className="mt-4 rounded-xl border px-4 py-3 text-sm">
+            Lozinka je promenjena. Prijavite se novom lozinkom.
+          </p>
+        )}
         <LoginForm next={next} />
       </div>
     </main>

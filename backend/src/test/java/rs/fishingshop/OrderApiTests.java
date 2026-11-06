@@ -111,10 +111,10 @@ class OrderApiTests extends CatalogTestSupport {
         long orderId = orderId(placeOrder(CUSTOMER, item(shortRod, 1)).andExpect(status().isCreated()).andReturn());
 
         mvc.perform(get("/api/orders/{id}", orderId))
-                .andExpect(status().isNotFound())
+                .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(content().string(not(containsString("marko@example.com"))));
-        mvc.perform(get("/api/orders")).andExpect(status().isMethodNotAllowed());
+        mvc.perform(get("/api/orders")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -208,6 +208,14 @@ class OrderApiTests extends CatalogTestSupport {
         placeOrder(CUSTOMER, item(rowless, 1))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.insufficientStockVariantIds", contains((int) rowless)));
+    }
+
+    @Test
+    void rejectsInvisibleDirectionControlsInTheCustomerName() throws Exception {
+        String customer = """
+                {"name":"Ana\u202EAnic","email":"ana@example.com","shippingAddress":"Bulevar 5, Novi Sad"}""";
+
+        placeOrder(customer, item(shortRod, 1)).andExpect(status().isBadRequest());
     }
 
     @Test

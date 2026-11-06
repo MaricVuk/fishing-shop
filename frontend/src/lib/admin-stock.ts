@@ -21,6 +21,7 @@ const MOVEMENT_LABELS: Record<StockMovementType, string> = {
   IN: "Prijem",
   OUT: "Porudžbina",
   ADJUSTMENT: "Popis",
+  RETURN: "Povraćaj",
 };
 
 const dateTime = new Intl.DateTimeFormat("sr-Latn-RS", {

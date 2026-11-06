@@ -67,6 +67,9 @@ describe("describeAudit", () => {
       .toBe("Prijem +7 (5 → 12). Otpremnica 9");
     expect(describeAudit(entry("STOCK_ADJUSTED", "VARIANT", { quantity: 5 }, { quantity: 3, change: -2, reason: "Popis" })))
       .toBe("Popis 5 → 3. Popis");
+    expect(
+      describeAudit(entry("STOCK_ADJUSTED", "VARIANT", { quantity: 3 }, { quantity: 2, change: -1, counted: 4, reserved: 2, reason: "Popis police" })),
+    ).toBe("Popis police: izbrojano 4, rezervisano 2, slobodno 3 → 2. Popis police");
   });
 
   it("describes order and employee changes", () => {

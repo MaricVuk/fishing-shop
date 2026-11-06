@@ -8,6 +8,7 @@ export type AdminPostResult<T> =
   | { kind: "forbidden" }
   | { kind: "not-found" }
   | { kind: "conflict" }
+  | { kind: "rejected" }
   | { kind: "failed" };
 
 export type LoginResult = { kind: "ok"; employee: Employee } | { kind: "error"; message: string };
@@ -87,6 +88,7 @@ export async function adminPost<T>(
     if (response.status === 403) return { kind: "forbidden" };
     if (response.status === 404) return { kind: "not-found" };
     if (response.status === 409) return { kind: "conflict" };
+    if (response.status === 422) return { kind: "rejected" };
     return { kind: "failed" };
   } catch {
     return { kind: "failed" };

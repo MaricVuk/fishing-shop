@@ -1,12 +1,14 @@
 package rs.fishingshop.auth;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import rs.fishingshop.employees.Employee;
 import rs.fishingshop.employees.EmployeeRepository;
 import rs.fishingshop.employees.EmployeeRole;
@@ -14,7 +16,7 @@ import rs.fishingshop.employees.EmployeeRole;
 @Component
 public class OwnerBootstrap implements ApplicationRunner {
 
-    static final int MIN_PASSWORD_LENGTH = 12;
+    private static final int MAX_EMAIL_LENGTH = 100;
 
     private static final Logger log = LoggerFactory.getLogger(OwnerBootstrap.class);
 
@@ -29,7 +31,6 @@ public class OwnerBootstrap implements ApplicationRunner {
     }
 
     @Override
-    @Transactional
     public void run(ApplicationArguments args) {
         if (employees.count() > 0) {
             return;
@@ -40,13 +41,24 @@ public class OwnerBootstrap implements ApplicationRunner {
             log.warn("No employees exist and SHOP_OWNER_EMAIL / SHOP_OWNER_PASSWORD are not set, nobody can log in");
             return;
         }
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            throw new IllegalStateException("SHOP_OWNER_PASSWORD must have at least " + MIN_PASSWORD_LENGTH + " characters");
+        email = email.toLowerCase(Locale.ROOT);
+        if (email.length() > MAX_EMAIL_LENGTH || !email.matches("[\\x21-\\x7e]+@[\\x21-\\x7e]+\\.[\\x21-\\x7e]+")) {
+            throw new IllegalStateException("SHOP_OWNER_EMAIL must be an ASCII email address of at most "
+                    + MAX_EMAIL_LENGTH + " characters");
+        }
+        if (password.length() < PasswordRules.MIN_LENGTH || password.length() > PasswordRules.MAX_LENGTH
+                || password.getBytes(StandardCharsets.UTF_8).length > PasswordRules.MAX_BYTES) {
+            throw new IllegalStateException("SHOP_OWNER_PASSWORD must have " + PasswordRules.MIN_LENGTH + " to "
+                    + PasswordRules.MAX_LENGTH + " characters and at most " + PasswordRules.MAX_BYTES + " bytes");
         }
         String name = blankToNull(properties.ownerName());
-        employees.save(new Employee(email, name == null ? "Vlasnik" : name, passwordEncoder.encode(password),
-                EmployeeRole.OWNER));
-        log.info("Created the first owner account {}", email);
+        try {
+            employees.saveAndFlush(new Employee(email, name == null ? "Vlasnik" : name,
+                    passwordEncoder.encode(password), EmployeeRole.OWNER));
+            log.info("Created the first owner account {}", email);
+        } catch (DataIntegrityViolationException createdByAnotherInstance) {
+            log.info("The first owner account was created by another instance");
+        }
     }
 
     private static String blankToNull(String value) {

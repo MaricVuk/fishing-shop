@@ -20,9 +20,4 @@ public class EmployeeSessions {
     public void endAll(String email) {
         jdbc.update("DELETE FROM spring_session WHERE principal_name = ?", email);
     }
-
-    @Transactional(propagation = Propagation.MANDATORY)
-    public void endAllExcept(String email, String keptSessionId) {
-        jdbc.update("DELETE FROM spring_session WHERE principal_name = ? AND session_id <> ?", email, keptSessionId);
-    }
 }

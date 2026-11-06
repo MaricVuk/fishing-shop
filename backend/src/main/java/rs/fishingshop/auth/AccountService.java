@@ -30,14 +30,14 @@ class AccountService {
     }
 
     @Transactional
-    boolean changePassword(EmployeePrincipal principal, ChangePasswordRequest request, String currentSessionId) {
+    boolean changePassword(EmployeePrincipal principal, ChangePasswordRequest request) {
         Employee employee = employees.findForUpdate(principal.getId())
                 .orElseThrow(() -> new IllegalStateException("Logged in employee is missing"));
         if (!passwordEncoder.matches(request.currentPassword(), employee.getPasswordHash())) {
             return false;
         }
         employee.replacePasswordHash(passwordEncoder.encode(request.newPassword()));
-        sessions.endAllExcept(employee.getEmail(), currentSessionId);
+        sessions.endAll(employee.getEmail());
         audit.record(principal.toAuditActor(), AuditAction.EMPLOYEE_PASSWORD_CHANGED, AuditEntityType.EMPLOYEE,
                 employee.getId(), null, null);
         return true;
