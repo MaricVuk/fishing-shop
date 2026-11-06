@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  insufficientStockMessage,
   mapServerErrors,
   toOrderRequest,
   validateCheckout,
   type CheckoutValues,
 } from "@/lib/checkout";
+import type { VariantLine } from "@/lib/types";
 
 const valid: CheckoutValues = {
   name: "Marko Marković",
@@ -97,5 +99,41 @@ describe("toOrderRequest", () => {
       },
       items: [{ variantId: 7, quantity: 2 }],
     });
+  });
+});
+
+function line(variantId: number, productName: string, attributes: Record<string, string>): VariantLine {
+  return {
+    variantId,
+    productId: 1,
+    productName,
+    brand: null,
+    sku: `SKU-${variantId}`,
+    attributes,
+    price: 100,
+    imageUrl: null,
+    inStock: true,
+  };
+}
+
+describe("insufficientStockMessage", () => {
+  const lines = [line(1, "Štap Feeder", { length: "2.7m" }), line(2, "Mašinica Pro", {})];
+
+  it("names one item", () => {
+    expect(insufficientStockMessage([2], lines)).toBe(
+      "Nema dovoljno na stanju: Mašinica Pro. Smanjite količinu ili uklonite stavku u korpi.",
+    );
+  });
+
+  it("names several items with their variant", () => {
+    expect(insufficientStockMessage([1, 2], lines)).toMatch(
+      /^Nema dovoljno na stanju: Štap Feeder \(.+\), Mašinica Pro\. /,
+    );
+  });
+
+  it("falls back to a general message for unknown ids", () => {
+    expect(insufficientStockMessage([99], lines)).toBe(
+      "Nekih stavki nema dovoljno na stanju. Smanjite količinu ili uklonite stavku u korpi.",
+    );
   });
 });

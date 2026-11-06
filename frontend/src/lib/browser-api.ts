@@ -10,6 +10,8 @@ export type SubmitResult =
   | { kind: "unconfirmed" }
   | { kind: "invalid"; errors: FieldViolation[] }
   | { kind: "unavailable"; variantIds: number[] }
+  | { kind: "insufficient"; variantIds: number[] }
+  | { kind: "busy" }
   | { kind: "failed" };
 
 async function readJson(response: Response): Promise<Record<string, unknown>> {
@@ -21,6 +23,13 @@ async function readJson(response: Response): Promise<Record<string, unknown>> {
   } catch {
     return {};
   }
+}
+
+function variantIds(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.filter(
+    (id): id is number => typeof id === "number" && Number.isSafeInteger(id) && id > 0,
+  );
 }
 
 export async function fetchVariantLines(
@@ -66,9 +75,15 @@ export async function submitOrder(request: OrderRequest): Promise<SubmitResult> 
   }
 
   if (response.status === 422) {
-    return Array.isArray(body.unavailableVariantIds)
-      ? { kind: "unavailable", variantIds: body.unavailableVariantIds as number[] }
-      : { kind: "invalid", errors: [] };
+    const unavailable = variantIds(body.unavailableVariantIds);
+    if (unavailable) return { kind: "unavailable", variantIds: unavailable };
+    const insufficient = variantIds(body.insufficientStockVariantIds);
+    if (insufficient) return { kind: "insufficient", variantIds: insufficient };
+    return { kind: "invalid", errors: [] };
+  }
+
+  if (response.status === 503) {
+    return { kind: "busy" };
   }
 
   return { kind: "failed" };

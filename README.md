@@ -46,12 +46,12 @@ Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine,
 |---|---|---|
 | 0 | Priprema: skelet, baza, migracije, CI | Gotova |
 | 1 | Katalog i porudžbina | Gotova |
-| 2 | Magacin i konkurentnost | Sledeća |
-| 3 | Zaposleni, uloge, audit log | Planirana |
+| 2 | Magacin i konkurentnost | Gotova |
+| 3 | Zaposleni, uloge, audit log | Sledeća |
 | 4 | Pozadinski poslovi | Planirana |
 | 5 | Izveštaji, dashboard, uživo obaveštenja | Planirana |
 
-Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja).
+Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja). Zaliha se proverava i skida pri porudžbini pod zaključavanjem reda, pa ni 50 istovremenih kupaca ne mogu da kupe više nego što ima, a svaka promena zalihe ostaje u istoriji ([ADR 0003](docs/adr/0003-pessimistic-locking-for-stock.md)).
 
 Detalji svake faze su u [planu razvoja](docs/ROADMAP.md).
 

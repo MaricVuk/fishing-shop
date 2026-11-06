@@ -1,5 +1,6 @@
 import type { CartLine } from "@/lib/cart";
-import type { FieldViolation, OrderRequest } from "@/lib/types";
+import { describeAttributes } from "@/lib/format";
+import type { FieldViolation, OrderRequest, VariantLine } from "@/lib/types";
 
 export type CheckoutValues = {
   name: string;
@@ -96,4 +97,19 @@ export function toOrderRequest(
     },
     items: lines.map(({ variantId, quantity }) => ({ variantId, quantity })),
   };
+}
+
+const STOCK_HINT = "Smanjite količinu ili uklonite stavku u korpi.";
+
+export function insufficientStockMessage(variantIds: number[], lines: VariantLine[]): string {
+  const names = variantIds.flatMap((id) => {
+    const line = lines.find((candidate) => candidate.variantId === id);
+    if (!line) return [];
+    const hasVariant = Object.keys(line.attributes).length > 0;
+    return [hasVariant ? `${line.productName} (${describeAttributes(line.attributes)})` : line.productName];
+  });
+
+  return names.length > 0
+    ? `Nema dovoljno na stanju: ${names.join(", ")}. ${STOCK_HINT}`
+    : `Nekih stavki nema dovoljno na stanju. ${STOCK_HINT}`;
 }

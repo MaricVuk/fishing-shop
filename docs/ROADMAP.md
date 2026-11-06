@@ -28,12 +28,12 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Paginacija i sortiranje na serveru, ne na klijentu
 - OpenAPI/Swagger dokumentacija API-ja
 
-## Faza 2: Magacin i konkurentnost (sledeća)
+## Faza 2: Magacin i konkurentnost (gotova)
 
-- [ ] Zalihe po varijanti, smanjenje zalihe pri porudžbini u jednoj transakciji
-- [ ] Rešen problem "dva kupca, poslednji komad" (optimistic ili pessimistic locking)
-- [ ] Test sa 50 istovremenih kupaca koji dokazuje da se ne proda više nego što ima
-- [ ] Istorija kretanja zaliha (ulaz, izlaz, korekcija)
+- [x] Zalihe po varijanti, smanjenje zalihe pri porudžbini u jednoj transakciji
+- [x] Rešen problem "dva kupca, poslednji komad" (pessimistic locking, [ADR 0003](adr/0003-pessimistic-locking-for-stock.md))
+- [x] Test sa 50 istovremenih kupaca koji dokazuje da se ne proda više nego što ima
+- [x] Istorija kretanja zaliha (ulaz, izlaz, korekcija)
 
 **Tehničke stvari na koje treba obratiti pažnju**
 - Granice transakcije (`@Transactional`), nivoi izolacije, šta tačno zaključava `SELECT ... FOR UPDATE`
@@ -43,7 +43,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Rezervacija zalihe naspram direktnog skidanja (korpa koja "drži" artikal)
 - Integracioni testovi sa pravim Postgresom (Testcontainers), ne H2
 
-## Faza 3: Zaposleni, uloge, audit log
+## Faza 3: Zaposleni, uloge, audit log (sledeća)
 
 - [ ] Login (JWT ili sesija), hashovanje lozinki (BCrypt/Argon2)
 - [ ] Uloge: vlasnik, prodavac, magacioner (RBAC)
@@ -87,7 +87,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
 - [ ] Strukturirani logovi, health check, osnovne metrike (Actuator)
 - [ ] Deploy na javni link (README mora da ima link koji radi)
-- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md) i [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md))
+- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md) i [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md))
 
 ## Otvorene odluke
 

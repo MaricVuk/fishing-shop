@@ -14,6 +14,7 @@ import { useVariantLines } from "@/hooks/use-variant-lines";
 import { submitOrder } from "@/lib/browser-api";
 import { buildCartView } from "@/lib/cart";
 import {
+  insufficientStockMessage,
   mapServerErrors,
   toOrderRequest,
   validateCheckout,
@@ -97,6 +98,12 @@ export function CheckoutForm() {
       focusFirstInvalid(serverErrors);
     } else if (result.kind === "unavailable") {
       setFormError("Neke stavke više nisu dostupne. Pregledajte korpu pre nego što nastavite.");
+      retry();
+    } else if (result.kind === "insufficient") {
+      setFormError(insufficientStockMessage(result.variantIds, variantLines));
+      retry();
+    } else if (result.kind === "busy") {
+      setFormError("Prodavnica je trenutno zauzeta. Pokušajte ponovo za nekoliko sekundi.");
     } else {
       setFormError("Porudžbina nije poslata. Proverite vezu i pokušajte ponovo.");
     }

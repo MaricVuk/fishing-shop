@@ -73,6 +73,38 @@ describe("submitOrder", () => {
     });
   });
 
+  it("returns the variants without enough stock for a 422", async () => {
+    mockFetch({
+      ok: false,
+      status: 422,
+      json: async () => ({ insufficientStockVariantIds: [2, 7] }),
+    });
+
+    await expect(submitOrder(request)).resolves.toEqual({
+      kind: "insufficient",
+      variantIds: [2, 7],
+    });
+  });
+
+  it("ignores ids that are not positive integers", async () => {
+    mockFetch({
+      ok: false,
+      status: 422,
+      json: async () => ({ insufficientStockVariantIds: [2, "x", -1, 3.5, 8] }),
+    });
+
+    await expect(submitOrder(request)).resolves.toEqual({
+      kind: "insufficient",
+      variantIds: [2, 8],
+    });
+  });
+
+  it("reports a busy shop for a 503", async () => {
+    mockFetch({ ok: false, status: 503, json: async () => ({}) });
+
+    await expect(submitOrder(request)).resolves.toEqual({ kind: "busy" });
+  });
+
   it("treats a 422 without unavailable variants as an invalid request", async () => {
     mockFetch({ ok: false, status: 422, json: async () => ({ variantId: 3 }) });
 
