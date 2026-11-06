@@ -29,6 +29,13 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Seed podaci | Kategorije ostaju u `V1`, demo proizvodi idu u dev-only lokaciju | produkcija ne dobija demo proizvode |
 | Slike proizvoda | Kolona `image_url` u `V3`, bez uploada u Fazi 1 | shop bez slika izgleda prazno, a upload nije potreban |
 | Komentari u kodu | Samo kad su tehnički neophodni | čitljiv kod bez šuma |
+| UI biblioteka | Tailwind CSS 4 + shadcn/ui (komponente se kopiraju u repo) | podrazumevani izbor iz plana, bez zaključavanja u biblioteku |
+| Dizajn smernice | Izvedene iz repoa `pbakaus/impeccable` kao referenca, plugin nije instaliran: jedan akcenat, bez ugnežđenih kartica i dekorativnih efekata, sva stanja (učitavanje, prazno, greška, fokus), kontrast najmanje 4.5:1 | instalater tog plugina povlači binarni fajl i dodaje hook, pa ga ne uključujemo bez pregleda |
+| Fontovi | Hanken Grotesk (tekst) i Barlow Condensed (naslovi), oba sa `latin-ext` | srpski dijakritici |
+| Frontend dohvat podataka | Server komponente sa `cache: "no-store"`, stanje filtera u URL-u, forma bez klijentskog JavaScript-a | SSR za katalog, linkovi koji se dele |
+| Next.js keširanje | `cacheComponents` i `partialPrefetching` isključeni (skelet ih uključuje) | katalog je dinamičan, prvo dosadno rešenje |
+| Frontend testovi | Vitest za čiste funkcije (`lib/`) | najlakši test runner za TypeScript |
+| Naziv shopa | Radni naslov "Ribolovački shop" u jednoj konstanti (`frontend/src/lib/config.ts`) | konačan naziv se odlučuje kasnije |
 
 ## Plan za sub-agente po fazama
 
@@ -47,9 +54,8 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 |---|---|---|
 | Autentikacija (JWT ili sesija) | Faza 3 | ADR |
 | Red poslova (RabbitMQ ili jednostavnije) | Faza 4 | prvo ga izazovi `boring-tech-advisor` agentom |
-| UI biblioteka (Tailwind + shadcn/ui ili druga) | početak celine 1.2 (frontend) | |
 | Gde se deploy-uje (Fly.io, Render, Railway, VPS) | pre prvog deploya | mora da ima javni link |
-| Naziv i izgled shopa | početak celine 1.2 (frontend) | |
+| Konačan naziv shopa | pre deploya | trenutno radni naslov |
 | Plaćanje karticom | verovatno van opsega | portfolio ne mora da prima pravi novac |
 | Više jezika (i18n) | samo ako zatreba | |
 
@@ -58,7 +64,10 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 - Obrisati folder `reference/` (autor). Sadržaj je preuzet u skelet.
 - Pregled `V1` je urađen ručno (agent `schema-reviewer` nije bio dostupan u toj sesiji). Nalazi 1, 3 i 5 su u `V2`. Otvoreno: indeks za pretragu po nazivu, jedinstveno ime kategorije po roditelju, SKU bez razlike velikih i malih slova. Ako se plugin `backend-design` učita, može se pokrenuti i agent.
 - Odlučiti da li CI koristi `./mvnw` umesto `mvn`, da lokalna i CI verzija Mavena budu iste.
-- Node.js: u WSL-u nije instaliran (vidi se samo Windows `npm` preko `/mnt/c`). Instalirati Linux Node LTS u korisnički prostor pre celine 1.2.
+- Frontend izgled nije vizuelno proveren u svetloj temi i na telefonu (Chrome ne dozvoljava prozor uži od oko 500 px). Pogledati na pravom telefonu ili kroz DevTools.
+- Slike proizvoda: dok `image_url` nije popunjen, kartice imaju rezervnu sliku. Izgled kataloga zavisi od pravih fotografija.
+- Kartica proizvoda još nije link, jer stranica detalja dolazi u celini 1.3. Tada dodati hover stanje.
+- `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa (bez visokih), uglavnom preko razvojnih alata. Pratiti ih kroz Dependabot.
 - OpenAPI (springdoc 3.2.0) radi sa Spring Boot 4.1.2. Pre deploya isključiti `/v3/api-docs` i Swagger UI u produkciji (`springdoc.api-docs.enabled=false`, `springdoc.swagger-ui.enabled=false`).
 - Poruka greške za neispravne parametre je trenutno opšta ("Validation failure"). Razmotriti detalje po polju kad krene frontend forme (celina 1.4).
 
@@ -66,4 +75,7 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 
 - 2026-11-06: skelet generisan preko Spring Initializr-a (Spring Boot **4.1.2**, najnovija stabilna, umesto ranije planiranog 3.5.7). Prvi `./mvnw verify` prošao (Testcontainers 2.x, Flyway V1, Hibernate `validate`), a `/actuator/health` je `UP` protiv compose baze.
 - JDK 21 (Temurin 21.0.13) instaliran ručno u `~/.local/jdk`, jer SDKMAN traži `zip`, a `sudo` nije bio dostupan.
+- 2026-11-06: celina 1.1 spojena (PR #4): `V3` (`image_url`), dev seed kroz repeatable migraciju, API kategorija i liste proizvoda, springdoc 3.2.0.
+- 2026-11-06: celina 1.2: Next.js frontend sa listom proizvoda (pretraga, kategorije, sortiranje, paginacija), 32 testa, frontend posao u CI-ju. GitHub akcije podignute na `checkout@v7`, `setup-java@v6`, `setup-node@v7`.
+- 2026-11-06: Node.js v26.13.0 (LTS) instaliran u `~/.local/node`, jer je WSL do tada video samo Windows `npm` preko `/mnt/c`.
 - 2026-11-06: `V2` (ograničenja i indeksi) sa testovima, README kao izložba projekta, plan faza u `docs/ROADMAP.md`, MIT `LICENSE`. Faza 0 zatvorena.

@@ -24,9 +24,9 @@ Težište projekta:
 |---|---|
 | Backend | Java 21, Spring Boot 4.1, Spring Data JPA |
 | Baza | PostgreSQL 16, Flyway migracije |
-| Frontend | TypeScript, Next.js (Faza 1) |
+| Frontend | TypeScript, Next.js 16, Tailwind CSS 4, shadcn/ui |
 | Red poslova | RabbitMQ (Faza 4) |
-| Testovi | JUnit 5, Testcontainers |
+| Testovi | JUnit 5, Testcontainers, Vitest |
 | Infrastruktura | Docker, GitHub Actions |
 
 ## Arhitektura
@@ -65,12 +65,17 @@ docker compose up -d
 cd backend
 SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 
+# 3. frontend (u drugom terminalu, potreban je Node.js 22 ili noviji)
+cd frontend
+npm install
+npm run dev
+
 # provera
 curl http://localhost:8080/actuator/health
 curl "http://localhost:8080/api/products?size=3&sort=price_desc"
 ```
 
-Dokumentacija API-ja (Swagger UI): http://localhost:8080/swagger-ui.html
+Shop je na http://localhost:3000, a dokumentacija API-ja (Swagger UI) na http://localhost:8080/swagger-ui.html.
 
 Razvojne vrednosti su već podrazumevane. Za sopstvene: `cp .env.example .env` (fajl `.env` je u `.gitignore`).
 
@@ -78,6 +83,7 @@ Testovi (zahtevaju Docker, koriste Testcontainers sa pravim PostgreSQL-om):
 
 ```bash
 cd backend && ./mvnw verify
+cd frontend && npm test
 ```
 
 ## Struktura repoa
@@ -86,7 +92,7 @@ cd backend && ./mvnw verify
 fishing-shop/
 ├── backend/            Spring Boot aplikacija (paket rs.fishingshop)
 │   └── src/main/resources/db/migration/   Flyway migracije
-├── frontend/           Next.js aplikacija (Faza 1)
+├── frontend/           Next.js aplikacija
 ├── docs/               plan razvoja i zapisi odluka
 ├── .github/workflows/  CI
 ├── docker-compose.yml  PostgreSQL za razvoj
