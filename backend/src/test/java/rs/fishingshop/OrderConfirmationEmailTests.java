@@ -14,24 +14,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.RestClient;
-import org.testcontainers.containers.GenericContainer;
 import rs.fishingshop.jobs.JobWorker;
 
 @AutoConfigureMockMvc
 class OrderConfirmationEmailTests extends CommittedOrderTestSupport {
 
-    static final GenericContainer<?> mailpit = new GenericContainer<>("axllent/mailpit:v1.27")
-            .withExposedPorts(1025, 8025);
-
-    static {
-        mailpit.start();
-    }
-
     @DynamicPropertySource
     static void mailProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.mail.host", mailpit::getHost);
-        registry.add("spring.mail.port", () -> mailpit.getMappedPort(1025));
+        Mailpit.register(registry);
     }
 
     @Autowired
@@ -40,12 +30,9 @@ class OrderConfirmationEmailTests extends CommittedOrderTestSupport {
     @Autowired
     JobWorker worker;
 
-    private final RestClient mailbox = RestClient.create(
-            "http://" + mailpit.getHost() + ":" + mailpit.getMappedPort(8025) + "/api/v1");
-
     @BeforeEach
     void emptyMailbox() {
-        mailbox.delete().uri("/messages").retrieve().toBodilessEntity();
+        Mailpit.clear();
     }
 
     @Test
@@ -55,7 +42,7 @@ class OrderConfirmationEmailTests extends CommittedOrderTestSupport {
 
         assertThat(worker.runOnce()).isEqualTo(1);
 
-        String messages = mailbox.get().uri("/messages").retrieve().body(String.class);
+        String messages = Mailpit.messages();
         assertThat((Integer) JsonPath.read(messages, "$.total")).isEqualTo(1);
         assertThat((List<String>) JsonPath.read(messages, "$.messages[0].To[*].Address"))
                 .containsExactly("marko@example.com");
@@ -64,7 +51,7 @@ class OrderConfirmationEmailTests extends CommittedOrderTestSupport {
                 .isEqualTo("order-confirmation-" + orderId + "@fishing-shop.test");
 
         String id = JsonPath.read(messages, "$.messages[0].ID");
-        String text = JsonPath.read(mailbox.get().uri("/message/{id}", id).retrieve().body(String.class), "$.Text");
+        String text = JsonPath.read(Mailpit.message(id), "$.Text");
         assertThat(text)
                 .contains("Marko Marković")
                 .contains("Committed Rod")
@@ -84,7 +71,7 @@ class OrderConfirmationEmailTests extends CommittedOrderTestSupport {
         worker.runOnce();
         worker.runOnce();
 
-        String messages = mailbox.get().uri("/messages").retrieve().body(String.class);
+        String messages = Mailpit.messages();
         assertThat((Integer) JsonPath.read(messages, "$.total")).isEqualTo(1);
     }
 

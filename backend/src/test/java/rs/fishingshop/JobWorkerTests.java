@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -209,20 +210,22 @@ class JobWorkerTests extends CatalogTestSupport {
     }
 
     private JobWorker worker(Consumer<ClaimedJob> behaviour) {
-        JobHandler handler = new JobHandler() {
-            @Override
-            public JobType type() {
-                return JobType.ORDER_CONFIRMATION_EMAIL;
-            }
+        List<JobHandler> handlers = Arrays.stream(JobType.values())
+                .map(type -> (JobHandler) new JobHandler() {
+                    @Override
+                    public JobType type() {
+                        return type;
+                    }
 
-            @Override
-            public void handle(ClaimedJob job) {
-                behaviour.accept(job);
-            }
-        };
+                    @Override
+                    public void handle(ClaimedJob job) {
+                        behaviour.accept(job);
+                    }
+                })
+                .toList();
         JobProperties properties = new JobProperties(true, Duration.ofSeconds(5), 10, MAX_ATTEMPTS, BASE_BACKOFF,
                 MAX_BACKOFF);
-        return new JobWorker(jdbc, transactions, List.of(handler), properties);
+        return new JobWorker(jdbc, transactions, handlers, properties);
     }
 
     private long pendingJob() {

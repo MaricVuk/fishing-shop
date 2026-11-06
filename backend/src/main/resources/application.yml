@@ -82,6 +82,13 @@ shop:
     rate-window: 10m
   mail:
     from: ${SHOP_MAIL_FROM}
+  invoice:
+    seller-name: ${SHOP_SELLER_NAME}
+    seller-address: ${SHOP_SELLER_ADDRESS}
+    tax-id: ${SHOP_SELLER_TAX_ID}
+    registration-number: ${SHOP_SELLER_REGISTRATION_NUMBER}
+    bank-account: ${SHOP_SELLER_BANK_ACCOUNT}
+    vat-rate: 20
   jobs:
     worker-enabled: true
     poll-interval: 5s

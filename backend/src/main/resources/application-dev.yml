@@ -26,3 +26,9 @@ shop:
     secure-cookies: false
   mail:
     from: ${SHOP_MAIL_FROM:Ribolovački shop <prodaja@fishing-shop.test>}
+  invoice:
+    seller-name: ${SHOP_SELLER_NAME:Ribolovački shop d.o.o. (demo)}
+    seller-address: ${SHOP_SELLER_ADDRESS:Obala reke 1, 11000 Beograd}
+    tax-id: ${SHOP_SELLER_TAX_ID:100000000}
+    registration-number: ${SHOP_SELLER_REGISTRATION_NUMBER:20000000}
+    bank-account: ${SHOP_SELLER_BANK_ACCOUNT:000-0000000000000-00}

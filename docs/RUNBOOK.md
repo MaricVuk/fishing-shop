@@ -42,3 +42,15 @@ Posao odmah ide u `DEAD`, bez ponavljanja (`PermanentJobFailure` u `last_error`)
 ### Kupac kaže da je dobio dva ista mejla
 
 Očekivano posle pada ili restarta backenda tokom slanja. Proveri da li je tada bio restart. Ako nije, a dupliranja ima više, to je greška u kodu: tabela dozvoljava samo jedan posao po porudžbini i tipu (`uq_background_jobs_order_type`), pa uzrok traži u slanju.
+
+### Račun nije napravljen
+
+Admin pokazuje "Račun nije napravljen" kad je posao `ORDER_INVOICE` u stanju `DEAD`. Razlog je u `last_error`. Posle ispravke vrati posao u red:
+
+```sql
+UPDATE background_jobs
+SET status = 'PENDING', attempts = 0, finished_at = NULL, next_attempt_at = now()
+WHERE type = 'ORDER_INVOICE' AND order_id = ...;
+```
+
+Ako je račun već izdat, ponovljen posao samo ponovo šalje isti PDF. Drugi račun za istu porudžbinu ne može da nastane (`uq_invoices_order`), a izdat račun ne može da se izmeni ni obriše (trigger). Pogrešan račun se ispravlja storno računom, koji još ne postoji (dug u [DECISIONS](DECISIONS.md)).
