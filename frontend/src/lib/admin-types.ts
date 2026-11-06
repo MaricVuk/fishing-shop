@@ -81,3 +81,12 @@ export type AdminOrderDetail = {
   allowedStatuses: OrderStatus[];
   history: AuditEntry[];
 };
+
+export type AdminEmployee = {
+  id: number;
+  email: string;
+  fullName: string;
+  role: EmployeeRole;
+  active: boolean;
+  createdAt: string;
+};

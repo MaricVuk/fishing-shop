@@ -12,15 +12,16 @@ describe("adminNavigation", () => {
       "/admin/stock",
       "/admin/employees",
       "/admin/audit",
+      "/admin/account",
     ]);
   });
 
   it("shows a seller only orders", () => {
-    expect(hrefs("SELLER")).toEqual(["/admin", "/admin/orders"]);
+    expect(hrefs("SELLER")).toEqual(["/admin", "/admin/orders", "/admin/account"]);
   });
 
   it("shows the warehouse only stock", () => {
-    expect(hrefs("WAREHOUSE")).toEqual(["/admin", "/admin/stock"]);
+    expect(hrefs("WAREHOUSE")).toEqual(["/admin", "/admin/stock", "/admin/account"]);
   });
 });
 
@@ -31,6 +32,8 @@ describe("canAccess", () => {
     expect(canAccess("WAREHOUSE", "/admin/employees")).toBe(false);
     expect(canAccess("OWNER", "/admin/audit")).toBe(true);
     expect(canAccess("WAREHOUSE", "/admin")).toBe(true);
+    expect(canAccess("SELLER", "/admin/account")).toBe(true);
+    expect(canAccess("SELLER", "/admin/employees/3")).toBe(false);
   });
 });
 

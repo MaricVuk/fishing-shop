@@ -113,6 +113,12 @@ describe("adminPost", () => {
     expect(init.body).toBe('{"quantity":4}');
   });
 
+  it("treats an empty 204 answer as success", async () => {
+    stubFetch(csrf(), { ...response(204), json: async () => { throw new SyntaxError("empty"); } });
+
+    await expect(adminPost("/x", {}, cookies)).resolves.toEqual({ kind: "ok", data: null });
+  });
+
   it("returns the invalid fields of a 400", async () => {
     stubFetch(csrf(), response(400, { errors: [{ field: "quantity", code: "Min" }] }));
 

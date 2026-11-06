@@ -10,6 +10,7 @@ const DESCRIPTIONS: Record<string, string> = {
   "/admin/stock": "Stanje po varijanti, prijem robe, popis i istorija kretanja.",
   "/admin/employees": "Nalozi zaposlenih i njihove uloge.",
   "/admin/audit": "Ko je šta promenio i kada.",
+  "/admin/account": "Promena vaše lozinke.",
 };
 
 export default async function AdminHomePage() {

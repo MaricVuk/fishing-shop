@@ -77,6 +77,7 @@ export async function adminPost<T>(
       body: JSON.stringify(body),
     });
 
+    if (response.status === 204) return { kind: "ok", data: null as T };
     if (response.ok) return { kind: "ok", data: (await response.json()) as T };
     if (response.status === 400) {
       const problem = (await response.json().catch(() => ({}))) as { errors?: { field: string }[] };
