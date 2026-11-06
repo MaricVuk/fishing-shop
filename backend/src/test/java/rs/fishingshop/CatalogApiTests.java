@@ -151,7 +151,9 @@ class CatalogApiTests extends CatalogTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/products']").exists())
                 .andExpect(jsonPath("$.paths['/api/categories']").exists())
-                .andExpect(jsonPath("$.paths['/api/products/{id}']").exists());
+                .andExpect(jsonPath("$.paths['/api/products/{id}']").exists())
+                .andExpect(jsonPath("$.paths['/api/variants']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders']").exists());
     }
 
     @Test
