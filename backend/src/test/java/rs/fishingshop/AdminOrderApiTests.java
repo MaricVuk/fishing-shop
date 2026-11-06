@@ -69,6 +69,7 @@ class AdminOrderApiTests extends EmployeeTestSupport {
                 WHERE variant_id IN (SELECT id FROM product_variants WHERE sku LIKE ?)
                 """, SKU_PREFIX + "%");
         for (Long order : orders) {
+            jdbc.update("DELETE FROM background_jobs WHERE order_id = ?", order);
             jdbc.update("DELETE FROM order_items WHERE order_id = ?", order);
             jdbc.update("DELETE FROM orders WHERE id = ?", order);
         }
