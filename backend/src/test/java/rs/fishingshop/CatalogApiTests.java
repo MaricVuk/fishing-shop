@@ -21,7 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @AutoConfigureMockMvc
 @Transactional
-@TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
+@TestPropertySource(properties = {
+        "spring.jpa.properties.hibernate.generate_statistics=true",
+        "springdoc.api-docs.enabled=true"
+})
 class CatalogApiTests extends CatalogTestSupport {
 
     @Autowired
@@ -119,6 +122,40 @@ class CatalogApiTests extends CatalogTestSupport {
     }
 
     @Test
+    void newestSortUsesTheCreationTime() throws Exception {
+        long oldest = product("stapovi", "Age Oldest", "Acme", true);
+        long newest = product("stapovi", "Age Newest", "Acme", true);
+        long middle = product("stapovi", "Age Middle", "Acme", true);
+        variant(oldest, "AG-1", "100.00", true, 1);
+        variant(newest, "AG-2", "100.00", true, 1);
+        variant(middle, "AG-3", "100.00", true, 1);
+        jdbc.update("UPDATE products SET created_at = now() - interval '3 days' WHERE id = ?", oldest);
+        jdbc.update("UPDATE products SET created_at = now() - interval '1 day' WHERE id = ?", newest);
+        jdbc.update("UPDATE products SET created_at = now() - interval '2 days' WHERE id = ?", middle);
+
+        mvc.perform(get("/api/products").param("q", "age").param("sort", "newest"))
+                .andExpect(jsonPath("$.content[*].name", contains("Age Newest", "Age Middle", "Age Oldest")));
+    }
+
+    @Test
+    void stockOnAnInactiveVariantDoesNotMakeTheProductInStock() throws Exception {
+        long product = product("stapovi", "Ghost Stock", "Acme", true);
+        variant(product, "GS-1", "100.00", true, 0);
+        variant(product, "GS-2", "50.00", false, 9);
+
+        mvc.perform(get("/api/products").param("q", "ghost"))
+                .andExpect(jsonPath("$.content[0].inStock").value(false))
+                .andExpect(jsonPath("$.content[0].minPrice").value(100.0));
+    }
+
+    @Test
+    void pageBeyondTheLastOneIsEmptyNotAnError() throws Exception {
+        mvc.perform(get("/api/products").param("page", "9999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(0)));
+    }
+
+    @Test
     void paginatesOnTheServer() throws Exception {
         for (int i = 1; i <= 5; i++) {
             variant(product("stapovi", "Page " + i, "Acme", true), "P-" + i, "100.00", true, 1);
@@ -137,7 +174,8 @@ class CatalogApiTests extends CatalogTestSupport {
     @Test
     void rejectsInvalidParametersWithProblemDetail() throws Exception {
         for (String[] invalid : new String[][] {
-                {"sort", "bogus"}, {"size", "0"}, {"size", "51"}, {"page", "-1"}, {"category", "Not A Slug"}}) {
+                {"sort", "bogus"}, {"size", "0"}, {"size", "51"}, {"page", "-1"}, {"page", "10000"},
+                {"page", "50000000"}, {"category", "Not A Slug"}}) {
             mvc.perform(get("/api/products").param(invalid[0], invalid[1]))
                     .andExpect(status().isBadRequest())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
