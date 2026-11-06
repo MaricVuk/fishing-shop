@@ -30,6 +30,20 @@ public class Inventory {
         return quantity;
     }
 
+    public void increase(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Cannot add " + amount);
+        }
+        quantity = Math.addExact(quantity, amount);
+    }
+
+    public void setCounted(int counted) {
+        if (counted < 0) {
+            throw new IllegalArgumentException("Stock cannot be negative");
+        }
+        quantity = counted;
+    }
+
     public void decrease(int amount) {
         if (amount <= 0 || amount > quantity) {
             throw new IllegalArgumentException("Cannot take " + amount + " of " + quantity);

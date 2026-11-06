@@ -12,7 +12,7 @@ Zaliha je u tabeli `inventory`, jedan red po varijanti, sa `CHECK (quantity >= 0
 
 - Pri porudžbini se redovi zalihe zaključavaju sa `SELECT ... FOR UPDATE` (`InventoryRepository.findForUpdate`, `PESSIMISTIC_WRITE`).
 - Redovi se zaključavaju **jedan po jedan, u rastućem redosledu `variant_id`**. Svaka transakcija tako čeka istim redom, pa dve porudžbine ne mogu da drže jedna drugoj redove (deadlock).
-- Provera i skidanje su u istoj transakciji kao upis porudžbine (`Propagation.MANDATORY` na `StockService.take`). Ako bilo koja stavka nema dovoljno, odgovor je `422` sa `insufficientStockVariantIds` i ne upisuje se ništa.
+- Provera i skidanje su u istoj transakciji kao upis porudžbine (`Propagation.MANDATORY` na `StockService.takeForOrder`). Ako bilo koja stavka nema dovoljno, odgovor je `422` sa `insufficientStockVariantIds` i ne upisuje se ništa.
 - Varijanta bez reda u `inventory` računa se kao da ima 0 komada.
 - Čekanje na zaključan red je ograničeno na 3 sekunde (`SET LOCAL lock_timeout`). Ako istekne, odgovor je `503` sa `Retry-After: 1`, a ne opšti `500`. Isto važi za deadlock koji prijavi baza.
 - `@Version` ostaje na entitetu kao druga linija odbrane, a `CHECK (quantity >= 0)` kao poslednja.

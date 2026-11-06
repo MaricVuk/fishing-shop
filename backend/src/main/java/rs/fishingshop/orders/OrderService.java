@@ -61,8 +61,9 @@ public class OrderService {
             throw OrderRejectedException.totalTooLarge();
         }
 
-        stock.take(quantities);
-        return OrderResponse.from(orders.save(order));
+        CustomerOrder saved = orders.save(order);
+        stock.takeForOrder(saved.getId(), quantities);
+        return OrderResponse.from(saved);
     }
 
     private static Map<Long, Integer> mergeQuantities(List<OrderItemRequest> items) {

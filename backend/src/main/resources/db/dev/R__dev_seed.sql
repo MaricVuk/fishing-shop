@@ -62,3 +62,11 @@ SELECT v.id, s.stock
 FROM seed_catalog s
 JOIN product_variants v ON v.sku = s.sku
 ON CONFLICT (variant_id) DO NOTHING;
+
+INSERT INTO stock_movements (variant_id, type, quantity_change, quantity_after, reason)
+SELECT i.variant_id, 'ADJUSTMENT', i.quantity, i.quantity, 'Opening balance'
+FROM seed_catalog s
+JOIN product_variants v ON v.sku = s.sku
+JOIN inventory i ON i.variant_id = v.id
+WHERE i.quantity > 0
+  AND NOT EXISTS (SELECT 1 FROM stock_movements m WHERE m.variant_id = i.variant_id);

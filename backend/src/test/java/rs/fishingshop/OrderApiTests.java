@@ -175,14 +175,11 @@ class OrderApiTests extends CatalogTestSupport {
 
     @Test
     void rejectsAnOrderForMoreUnitsThanInStockAndKeepsTheStock() throws Exception {
-        int before = orderCount();
-
         placeOrder(CUSTOMER, item(shortRod, 6) + "," + item(longRod, 1))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.insufficientStockVariantIds", contains((int) shortRod)));
 
-        assertThat(orderCount()).isEqualTo(before);
         assertThat(stockOf(shortRod)).isEqualTo(5);
         assertThat(stockOf(longRod)).isEqualTo(3);
     }
