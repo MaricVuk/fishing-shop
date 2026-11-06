@@ -49,6 +49,26 @@ public class Employee {
         this.createdAt = Instant.now();
     }
 
+    public void changeRole(EmployeeRole role) {
+        this.role = role;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    public void replacePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
     public Long getId() {
         return id;
     }

@@ -1,6 +1,8 @@
 package rs.fishingshop.audit;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -26,5 +28,11 @@ public class AuditService {
         return entries.findByEntityTypeAndEntityIdOrderByIdDesc(entityType, String.valueOf(entityId)).stream()
                 .map(AuditLog::toEntry)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AuditEntry> search(AuditEntityType entityType, String entityId, AuditAction action, int page,
+            int size) {
+        return entries.search(entityType, entityId, action, PageRequest.of(page, size)).map(AuditLog::toEntry);
     }
 }

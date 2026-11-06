@@ -45,7 +45,7 @@ class SecurityConfig {
                         .requestMatchers("/api/orders", "/api/orders/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                         .requestMatchers(LOGIN).permitAll()
-                        .requestMatchers("/api/auth/me", LOGOUT, "/api/admin/**").authenticated()
+                        .requestMatchers("/api/auth/me", "/api/auth/password", LOGOUT, "/api/admin/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/error").permitAll()
