@@ -52,7 +52,7 @@
   --accent-foreground: oklch(0.3 0.06 195);
   --destructive: oklch(0.52 0.2 27);
   --border: oklch(0.9 0.008 210);
-  --input: oklch(0.84 0.01 210);
+  --input: oklch(0.62 0.015 210);
   --ring: oklch(0.55 0.1 195);
   --radius: 0.75rem;
 }
@@ -75,7 +75,7 @@
     --accent-foreground: oklch(0.9 0.05 190);
     --destructive: oklch(0.7 0.17 25);
     --border: oklch(0.31 0.015 220);
-    --input: oklch(0.38 0.016 220);
+    --input: oklch(0.55 0.015 220);
     --ring: oklch(0.7 0.1 190);
   }
 }

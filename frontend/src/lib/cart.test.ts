@@ -30,17 +30,17 @@ function variant(id: number, price: number, inStock = true): VariantLine {
 
 describe("addToCart", () => {
   it("adds a new line", () => {
-    expect(addToCart([], 5)).toEqual([{ variantId: 5, quantity: 1 }]);
+    expect(addToCart([], 5)).toEqual({ status: "added", lines: [{ variantId: 5, quantity: 1 }] });
   });
 
   it("increases the quantity of an existing line", () => {
     const lines: CartLine[] = [{ variantId: 5, quantity: 2 }];
-    expect(addToCart(lines, 5)).toEqual([{ variantId: 5, quantity: 3 }]);
+    expect(addToCart(lines, 5)).toEqual({ status: "added", lines: [{ variantId: 5, quantity: 3 }] });
   });
 
-  it("does not exceed the maximum quantity", () => {
+  it("reports the quantity limit instead of silently doing nothing", () => {
     const lines: CartLine[] = [{ variantId: 5, quantity: MAX_QUANTITY }];
-    expect(addToCart(lines, 5)).toEqual([{ variantId: 5, quantity: MAX_QUANTITY }]);
+    expect(addToCart(lines, 5)).toEqual({ status: "quantity-limit" });
   });
 
   it("refuses a new line when the cart is full", () => {
@@ -48,8 +48,8 @@ describe("addToCart", () => {
       variantId: index + 1,
       quantity: 1,
     }));
-    expect(addToCart(full, 999)).toBeNull();
-    expect(addToCart(full, 1)).not.toBeNull();
+    expect(addToCart(full, 999)).toEqual({ status: "cart-full" });
+    expect(addToCart(full, 1).status).toBe("added");
   });
 
   it("does not mutate the original lines", () => {

@@ -73,6 +73,23 @@ describe("submitOrder", () => {
     });
   });
 
+  it("treats a 422 without unavailable variants as an invalid request", async () => {
+    mockFetch({ ok: false, status: 422, json: async () => ({ variantId: 3 }) });
+
+    await expect(submitOrder(request)).resolves.toEqual({ kind: "invalid", errors: [] });
+  });
+
+  it("reports an unconfirmed order when a 201 body is unreadable", async () => {
+    mockFetch({
+      status: 201,
+      json: async () => {
+        throw new Error("truncated");
+      },
+    });
+
+    await expect(submitOrder(request)).resolves.toEqual({ kind: "unconfirmed" });
+  });
+
   it("reports failure for server errors and unreadable bodies", async () => {
     mockFetch({
       ok: false,

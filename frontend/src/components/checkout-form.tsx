@@ -42,6 +42,7 @@ export function CheckoutForm() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [outcome, setOutcome] = useState<"created" | "unconfirmed" | null>(null);
 
   function update(field: CheckoutField, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -55,12 +56,13 @@ export function CheckoutForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || status !== "ready") return;
 
     const found = validateCheckout(values);
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length > 0) {
+      setFormError("Proverite označena polja i pokušajte ponovo.");
       focusFirstInvalid(found);
       return;
     }
@@ -70,8 +72,15 @@ export function CheckoutForm() {
 
     if (result.kind === "created") {
       saveLastOrder(result.order);
+      setOutcome("created");
       cart.clear();
       router.push("/checkout/success");
+      return;
+    }
+
+    if (result.kind === "unconfirmed") {
+      setOutcome("unconfirmed");
+      cart.clear();
       return;
     }
 
@@ -80,7 +89,11 @@ export function CheckoutForm() {
     if (result.kind === "invalid") {
       const serverErrors = mapServerErrors(result.errors);
       setErrors(serverErrors);
-      setFormError("Proverite označena polja i pokušajte ponovo.");
+      setFormError(
+        Object.keys(serverErrors).length > 0
+          ? "Proverite označena polja i pokušajte ponovo."
+          : "Neki podaci u korpi nisu ispravni. Pregledajte korpu i pokušajte ponovo.",
+      );
       focusFirstInvalid(serverErrors);
     } else if (result.kind === "unavailable") {
       setFormError("Neke stavke više nisu dostupne. Pregledajte korpu pre nego što nastavite.");
@@ -99,7 +112,28 @@ export function CheckoutForm() {
     );
   }
 
-  if (cart.lines.length === 0 && !submitting) {
+  if (outcome === "created") {
+    return (
+      <p role="status" className="mt-8 text-lg">
+        Porudžbina je poslata. Preusmeravam vas na potvrdu…
+      </p>
+    );
+  }
+
+  if (outcome === "unconfirmed") {
+    return (
+      <Notice
+        title="Porudžbina je verovatno primljena"
+        description="Nismo dobili potvrdu od servera. Nemojte ponovo da šaljete porudžbinu, već nam se javite da proverimo."
+      >
+        <Link href="/products" className={buttonVariants({ size: "lg" })}>
+          Pogledaj proizvode
+        </Link>
+      </Notice>
+    );
+  }
+
+  if (cart.lines.length === 0) {
     return (
       <Notice title="Korpa je prazna" description="Dodajte proizvode pre nego što završite porudžbinu.">
         <Link href="/products" className={buttonVariants({ size: "lg" })}>
@@ -141,9 +175,8 @@ export function CheckoutForm() {
     <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_22rem] lg:gap-12">
       <form onSubmit={handleSubmit} noValidate className="flex max-w-xl flex-col gap-5">
         {formError && (
-          <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {formError}
-            {" "}
+          <div role="alert" className="rounded-xl border border-destructive/60 px-4 py-3 text-sm">
+            {formError}{" "}
             <Link href="/cart" className="underline underline-offset-4">
               Pregledaj korpu
             </Link>
@@ -194,6 +227,7 @@ export function CheckoutForm() {
           size="lg"
           className="h-11 self-start px-6"
           disabled={submitting || status === "loading"}
+          focusableWhenDisabled
         >
           {submitting ? "Šaljem porudžbinu…" : "Pošalji porudžbinu"}
         </Button>

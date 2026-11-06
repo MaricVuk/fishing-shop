@@ -13,7 +13,7 @@ export type CheckoutField = keyof CheckoutValues;
 export type FieldErrors = Partial<Record<CheckoutField, string>>;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE = /^[0-9+()/ .-]{6,50}$/;
+const PHONE = /^[0-9+(][0-9+()/ .-]{4,48}[0-9)]$/;
 
 const LIMITS: Record<CheckoutField, number> = {
   name: 150,

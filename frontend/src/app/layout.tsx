@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="sr" className={`${body.variable} ${display.variable} h-full`}>
+    <html lang="sr-Latn" className={`${body.variable} ${display.variable} h-full`}>
       <body className="flex min-h-full flex-col">
         <a
           href="#sadrzaj"
@@ -36,7 +36,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         <main
           id="sadrzaj"
-          className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 outline-none sm:px-6 lg:px-8"
         >
           {children}
         </main>

@@ -7,6 +7,7 @@ import type {
 
 export type SubmitResult =
   | { kind: "created"; order: OrderResponse }
+  | { kind: "unconfirmed" }
   | { kind: "invalid"; errors: FieldViolation[] }
   | { kind: "unavailable"; variantIds: number[] }
   | { kind: "failed" };
@@ -48,7 +49,11 @@ export async function submitOrder(request: OrderRequest): Promise<SubmitResult> 
   }
 
   if (response.status === 201) {
-    return { kind: "created", order: (await response.json()) as OrderResponse };
+    try {
+      return { kind: "created", order: (await response.json()) as OrderResponse };
+    } catch {
+      return { kind: "unconfirmed" };
+    }
   }
 
   const body = await readJson(response);
@@ -61,12 +66,9 @@ export async function submitOrder(request: OrderRequest): Promise<SubmitResult> 
   }
 
   if (response.status === 422) {
-    return {
-      kind: "unavailable",
-      variantIds: Array.isArray(body.unavailableVariantIds)
-        ? (body.unavailableVariantIds as number[])
-        : [],
-    };
+    return Array.isArray(body.unavailableVariantIds)
+      ? { kind: "unavailable", variantIds: body.unavailableVariantIds as number[] }
+      : { kind: "invalid", errors: [] };
   }
 
   return { kind: "failed" };

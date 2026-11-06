@@ -26,7 +26,7 @@ Težište projekta:
 | Baza | PostgreSQL 16, Flyway migracije |
 | Frontend | TypeScript, Next.js 16, Tailwind CSS 4, shadcn/ui |
 | Red poslova | RabbitMQ (Faza 4) |
-| Testovi | JUnit 5, Testcontainers, Vitest |
+| Testovi | JUnit 6, Testcontainers, Vitest |
 | Infrastruktura | Docker, GitHub Actions |
 
 ## Arhitektura
@@ -38,18 +38,20 @@ Težište projekta:
                        [RabbitMQ red]  ──►  [Worker: mejl, PDF račun, magacin]
 ```
 
-Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Trenutno postoje Spring Boot API i PostgreSQL, ostalo dolazi po fazama.
+Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Trenutno postoje Next.js shop, Spring Boot API i PostgreSQL, a admin panel i RabbitMQ dolaze po fazama.
 
 ## Status
 
 | Faza | Opis | Stanje |
 |---|---|---|
 | 0 | Priprema: skelet, baza, migracije, CI | Gotova |
-| 1 | Katalog i porudžbina | U toku |
-| 2 | Magacin i konkurentnost | Planirana |
+| 1 | Katalog i porudžbina | Gotova |
+| 2 | Magacin i konkurentnost | Sledeća |
 | 3 | Zaposleni, uloge, audit log | Planirana |
 | 4 | Pozadinski poslovi | Planirana |
 | 5 | Izveštaji, dashboard, uživo obaveštenja | Planirana |
+
+Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja).
 
 Detalji svake faze su u [planu razvoja](docs/ROADMAP.md).
 
@@ -61,11 +63,11 @@ Potrebno: JDK 21 i Docker. Maven nije potreban, projekat ima Maven wrapper (`mvn
 # 1. baza
 docker compose up -d
 
-# 2. backend (profil dev dodaje demo proizvode)
+# 2. backend (profil dev za lokalni rad, vidi ispod)
 cd backend
 SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 
-# 3. frontend (u drugom terminalu, potreban je Node.js 22 ili noviji)
+# 3. frontend (u drugom terminalu, potreban je Node.js 22.12 ili noviji)
 cd frontend
 npm install
 npm run dev
@@ -77,13 +79,15 @@ curl "http://localhost:8080/api/products?size=3&sort=price_desc"
 
 Shop je na http://localhost:3000, a dokumentacija API-ja (Swagger UI) na http://localhost:8080/swagger-ui.html.
 
-Razvojne vrednosti su već podrazumevane. Za sopstvene: `cp .env.example .env` (fajl `.env` je u `.gitignore`).
+Profil `dev` je potreban za lokalni rad: daje razvojne vrednosti za bazu (iste kao u `docker-compose.yml`), učitava demo proizvode i uključuje Swagger UI. Bez njega backend traži `DB_URL`, `DB_USER` i `DB_PASSWORD` iz okruženja i ne izlaže Swagger, što je ponašanje za produkciju.
+
+Fajl `.env` čita samo `docker compose`. Backend čita promenljive okruženja (npr. `set -a; source .env; set +a` pre pokretanja), a frontend čita `frontend/.env.local` (`cp frontend/.env.example frontend/.env.local`). Adresa backenda `BACKEND_URL` za `/api/*` proxy se ugrađuje pri build-u, pa se za produkciju zadaje pri `npm run build`.
 
 Testovi (zahtevaju Docker, koriste Testcontainers sa pravim PostgreSQL-om):
 
 ```bash
-cd backend && ./mvnw verify
-cd frontend && npm test
+(cd backend && ./mvnw verify)
+(cd frontend && npm test)
 ```
 
 ## Struktura repoa
