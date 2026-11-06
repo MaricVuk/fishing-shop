@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import rs.fishingshop.stock.StockMovementEntry;
 import rs.fishingshop.stock.StockMovementType;
 import rs.fishingshop.stock.StockService;
+import rs.fishingshop.stock.StockVariantNotFoundException;
 
 @AutoConfigureMockMvc
 class StockMovementTests extends CommittedOrderTestSupport {
@@ -148,7 +149,8 @@ class StockMovementTests extends CommittedOrderTestSupport {
         assertThatThrownBy(() -> stock.receive(variant, -1, null)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> stock.adjust(variant, -1, "Count")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> stock.adjust(variant, 3, " ")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> stock.receive(Long.MAX_VALUE, 1, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> stock.receive(Long.MAX_VALUE, 1, null))
+                .isInstanceOf(StockVariantNotFoundException.class);
         assertThatThrownBy(() -> stock.receive(variant, Integer.MAX_VALUE, null))
                 .isInstanceOf(IllegalArgumentException.class);
 

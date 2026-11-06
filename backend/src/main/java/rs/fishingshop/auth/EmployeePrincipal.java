@@ -6,6 +6,7 @@ import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import rs.fishingshop.audit.AuditActor;
 import rs.fishingshop.employees.Employee;
 import rs.fishingshop.employees.EmployeeRole;
 
@@ -37,6 +38,10 @@ public final class EmployeePrincipal implements UserDetails, CredentialsContaine
 
     public EmployeeRole getRole() {
         return role;
+    }
+
+    public AuditActor toAuditActor() {
+        return new AuditActor(id, email);
     }
 
     @Override

@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface StockMovementRepository extends JpaRepository<StockMovement, Long> {
 
     List<StockMovement> findByVariantIdOrderByIdAsc(Long variantId);
+
+    List<StockMovement> findTop200ByVariantIdOrderByIdDesc(Long variantId);
 }

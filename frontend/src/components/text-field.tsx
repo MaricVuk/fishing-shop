@@ -12,6 +12,8 @@ export function TextField({
   maxLength,
   optional = false,
   multiline = false,
+  inputMode,
+  hint,
 }: {
   id: string;
   label: string;
@@ -23,6 +25,8 @@ export function TextField({
   maxLength?: number;
   optional?: boolean;
   multiline?: boolean;
+  inputMode?: "numeric" | "text" | "email";
+  hint?: string;
 }) {
   const shared = {
     id,
@@ -31,7 +35,7 @@ export function TextField({
     maxLength,
     autoComplete,
     "aria-invalid": error ? true : undefined,
-    "aria-describedby": error ? `${id}-error` : undefined,
+    "aria-describedby": [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ") || undefined,
   };
 
   return (
@@ -52,9 +56,15 @@ export function TextField({
         <Input
           {...shared}
           type={type}
+          inputMode={inputMode}
           className="h-10"
           onChange={(event) => onChange(event.target.value)}
         />
+      )}
+      {hint && (
+        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
+          {hint}
+        </p>
       )}
       {error && (
         <p id={`${id}-error`} className="text-sm text-destructive">
