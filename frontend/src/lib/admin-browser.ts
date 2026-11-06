@@ -1,6 +1,14 @@
 import { loginErrorMessage, readCookie } from "@/lib/admin-auth";
 import type { Employee } from "@/lib/admin-types";
 
+export type AdminPostResult<T> =
+  | { kind: "ok"; data: T }
+  | { kind: "invalid"; fields: string[] }
+  | { kind: "unauthorized" }
+  | { kind: "forbidden" }
+  | { kind: "not-found" }
+  | { kind: "failed" };
+
 export type LoginResult = { kind: "ok"; employee: Employee } | { kind: "error"; message: string };
 
 type CookieSource = () => string;
@@ -52,5 +60,32 @@ export async function logOut(cookies: CookieSource = browserCookies): Promise<bo
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+export async function adminPost<T>(
+  path: string,
+  body: unknown,
+  cookies: CookieSource = browserCookies,
+): Promise<AdminPostResult<T>> {
+  try {
+    const headers = await csrfHeaders(cookies);
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (response.ok) return { kind: "ok", data: (await response.json()) as T };
+    if (response.status === 400) {
+      const problem = (await response.json().catch(() => ({}))) as { errors?: { field: string }[] };
+      return { kind: "invalid", fields: (problem.errors ?? []).map((error) => error.field) };
+    }
+    if (response.status === 401) return { kind: "unauthorized" };
+    if (response.status === 403) return { kind: "forbidden" };
+    if (response.status === 404) return { kind: "not-found" };
+    return { kind: "failed" };
+  } catch {
+    return { kind: "failed" };
   }
 }

@@ -65,19 +65,21 @@ public class StockService {
     }
 
     @Transactional
-    public void receive(Long variantId, int quantity, String reason) {
+    public StockChange receive(Long variantId, int quantity, String reason) {
         if (quantity <= 0 || quantity > MAX_DELIVERY) {
             throw new IllegalArgumentException("Delivered quantity must be between 1 and " + MAX_DELIVERY);
         }
         String note = optionalReason(reason);
         Inventory row = lockOrCreate(variantId);
+        int before = row.getQuantity();
         row.increase(quantity);
         movements.save(new StockMovement(
                 variantId, StockMovementType.IN, quantity, row.getQuantity(), null, note));
+        return new StockChange(variantId, before, row.getQuantity());
     }
 
     @Transactional
-    public void adjust(Long variantId, int countedQuantity, String reason) {
+    public StockChange adjust(Long variantId, int countedQuantity, String reason) {
         if (countedQuantity < 0) {
             throw new IllegalArgumentException("Counted quantity cannot be negative");
         }
@@ -86,13 +88,22 @@ public class StockService {
             throw new IllegalArgumentException("An adjustment needs a reason");
         }
         Inventory row = lockOrCreate(variantId);
-        int change = countedQuantity - row.getQuantity();
+        int before = row.getQuantity();
+        int change = countedQuantity - before;
         if (change == 0) {
-            return;
+            return new StockChange(variantId, before, before);
         }
         row.setCounted(countedQuantity);
         movements.save(new StockMovement(
                 variantId, StockMovementType.ADJUSTMENT, change, row.getQuantity(), null, note));
+        return new StockChange(variantId, before, row.getQuantity());
+    }
+
+    @Transactional(readOnly = true)
+    public List<StockMovementEntry> recentHistory(Long variantId) {
+        return movements.findTop200ByVariantIdOrderByIdDesc(variantId).stream()
+                .map(StockMovement::toEntry)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +115,7 @@ public class StockService {
 
     private Inventory lockOrCreate(Long variantId) {
         if (!variants.existsById(variantId)) {
-            throw new IllegalArgumentException("Unknown variant " + variantId);
+            throw new StockVariantNotFoundException(variantId);
         }
         limitLockWait();
         inventory.insertIfAbsent(variantId);

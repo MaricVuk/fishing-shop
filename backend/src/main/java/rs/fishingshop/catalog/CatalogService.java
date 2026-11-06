@@ -1,11 +1,11 @@
 package rs.fishingshop.catalog;
 
 import java.util.List;
-import java.util.Locale;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.fishingshop.api.LikePatterns;
 
 @Service
 @Transactional(readOnly = true)
@@ -29,7 +29,7 @@ public class CatalogService {
     public PageResponse<ProductSummary> searchProducts(
             String category, String query, ProductSort sort, int page, int size) {
         String categoryFilter = category == null ? "%" : category;
-        String pattern = "%" + escapeLike(query == null ? "" : query.trim().toLowerCase(Locale.ROOT)) + "%";
+        String pattern = LikePatterns.contains(query);
         return PageResponse.from(products.search(categoryFilter, pattern, PageRequest.of(page, size, sort.toSort())));
     }
 
@@ -44,9 +44,5 @@ public class CatalogService {
 
     public List<VariantLine> listVariantLines(List<Long> ids) {
         return variants.findLines(ids);
-    }
-
-    private static String escapeLike(String value) {
-        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

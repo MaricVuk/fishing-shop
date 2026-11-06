@@ -1,6 +1,6 @@
 # Odluke
 
-Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md)). Poslednje ažuriranje: 2026-11-06.
+Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [0005 audit log](adr/0005-append-only-audit-log.md)). Poslednje ažuriranje: 2026-11-06.
 
 ## Odlučeno
 
@@ -59,6 +59,8 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Dev seed | Samo ubacuje podatke (`ON CONFLICT DO NOTHING`), a Flyway ignoriše nedostajuću repeatable migraciju | isključivanje `dev` profila ne sme da sruši start na istoj bazi |
 | Prijava zaposlenih | Sesija u Postgresu (Spring Session JDBC), `HttpOnly` kolačić, BCrypt, CSRF i na prijavi, sve što nije dozvoljeno je zabranjeno ([ADR 0004](adr/0004-employee-login-with-server-sessions.md)) | odjava i otkaz deluju odmah, nema tajnog ključa, desetak zaposlenih |
 | Admin frontend | `/admin` je u istom Next.js-u, sa svojim layoutom (shop rute su u grupi `(shop)`). `proxy.ts` samo preusmerava bez kolačića `SESSION`, a stvarnu proveru radi backend (`/api/auth/me`) na svakoj stranici. Meni i pristup po ulozi su u jednoj tabeli (`lib/admin-nav.ts`) | proxy nije mesto za autorizaciju (preporuka Next.js-a), backend je merodavan |
+| Audit log | Tabela `audit_log` u istoj bazi, trigger odbija `UPDATE`, `DELETE` i `TRUNCATE`, upis u istoj transakciji kao izmena (`MANDATORY`), dozvoljene akcije su `CHECK` lista ([ADR 0005](adr/0005-append-only-audit-log.md)) | istorija ne može da se prepiše, a audit ne može da opiše izmenu koja se nije desila |
+| Magacin u adminu | `/api/admin/stock` za vlasnika i magacionera (`@PreAuthorize`): lista sa pretragom (i neaktivne varijante), detalj, poslednjih 200 kretanja, prijem (1 do 100.000) i popis (uz obavezan razlog) | magacioner vidi sve što fizički postoji, ne samo ono što je u prodaji |
 
 ## Plan za sub-agente po fazama
 
@@ -103,6 +105,7 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 | Agent `schema-reviewer` nije bio dostupan, pregled `V1` je urađen ručno | drugo mišljenje | ako se plugin `backend-design` učita |
 | Ime vlasnika u `LICENSE` je GitHub nalog | javno je vidljivo | po želji |
 | Proxy `/api/*` koji čita adresu backenda u runtime-u (route handler umesto `rewrites`, samo `GET /api/variants` i `POST /api/orders`) | adresa se ugrađuje pri build-u, pa jedna slika ne radi u više okruženja | pre deploya |
+| Poseban korisnik baze za aplikaciju, bez prava na `ALTER` i `TRUNCATE`; Flyway sa drugim nalogom | vlasnik tabele može da isključi trigger audit loga | pre deploya |
 | Obavezan HTTPS (kolačić sesije sa `Secure`, preusmeravanje sa HTTP-a, HSTS) | bez njega se kolačić sesije zaposlenog šalje nešifrovano | pre deploya |
 | Dvofaktorska prijava (2FA, npr. TOTP aplikacija) bar za vlasnika | ukradena lozinka vlasnika daje pristup svemu | posle Faze 3, pre deploya |
 | Actuator na posebnom portu i backend dostupan samo Next serveru | `rewrites` nisu bezbednosna granica | pre deploya |
@@ -129,3 +132,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 - **2.3, Faza 2 zatvorena**: checkout prikazuje koje stavke nemaju dovoljno na stanju (`insufficientStockVariantIds`, sa nazivom i varijantom) i osvežava dostupnost, a za `503` kaže da je prodavnica zauzeta. Provereno u browseru na privremenoj bazi. README status. 72 backend i 116 frontend testova.
 - **3.1**: prijava zaposlenih ([ADR 0004](adr/0004-employee-login-with-server-sessions.md)). `V5` (`employees`, tabele Spring Session-a), `POST /api/auth/login` i `logout`, `GET /api/auth/me` i `csrf`, BCrypt 12, `429` posle 5 promašaja, sesija najviše 8 sati, prvi vlasnik iz env varijabli, tri dev naloga. Test pravog toka browsera na pravom HTTP serveru, jer MockMvc menja CSRF repozitorijum testnim. 92 backend testa.
 - **3.2**: admin okvir. Shop rute su premeštene u grupu `(shop)`, pa admin nema korpu u zaglavlju. Stranice: `/admin/login` (CSRF iz kolačića, poruke za `401` i `429`, `next` dozvoljava samo `/admin` putanje), `/admin` sa karticama po ulozi, i stranice porudžbina, magacina, zaposlenih i audit loga sa proverom uloge i porukom "u izradi". Proxy preusmerava bez sesije. Provereno za sve tri uloge kroz Next proxy, a stranica prijave u browseru. 135 frontend testova.
+- **3.3**: `V6` audit log (trigger protiv izmene, brisanja i `TRUNCATE`), `AuditService` u istoj transakciji, API magacina za vlasnika i magacionera, stranice `/admin/stock` (pretraga, stranice) i `/admin/stock/{id}` (prijem, popis, istorija). Rollback test kad audit ne može da se upiše, potvrđen mutacionim testom. Provereno kroz Next proxy na dev bazi: prijem, popis, audit redovi, prodavac dobija `403`. 105 backend i 146 frontend testova.

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { logIn, logOut } from "@/lib/admin-browser";
+import { adminPost, logIn, logOut } from "@/lib/admin-browser";
 
 const employee = { id: 1, email: "a@b.rs", fullName: "Ana", role: "OWNER" };
 
@@ -92,5 +92,42 @@ describe("logOut", () => {
     stubFetch(response(200, { headerName: "X-XSRF-TOKEN", cookieName: "XSRF-TOKEN" }), response(500));
 
     await expect(logOut(cookies)).resolves.toBe(false);
+  });
+});
+
+describe("adminPost", () => {
+  const csrf = () => response(200, { headerName: "X-XSRF-TOKEN", cookieName: "XSRF-TOKEN" });
+
+  it("sends JSON with the CSRF header and returns the body", async () => {
+    const fetchMock = stubFetch(csrf(), response(200, { variantId: 4, quantity: 9 }));
+
+    await expect(adminPost("/api/admin/stock/4/receipts", { quantity: 4 }, cookies)).resolves.toEqual({
+      kind: "ok",
+      data: { variantId: 4, quantity: 9 },
+    });
+
+    const [url, init] = fetchMock.mock.calls[1];
+    expect(url).toBe("/api/admin/stock/4/receipts");
+    expect(init.headers["X-XSRF-TOKEN"]).toBe("token-1");
+    expect(init.headers["Content-Type"]).toBe("application/json");
+    expect(init.body).toBe('{"quantity":4}');
+  });
+
+  it("returns the invalid fields of a 400", async () => {
+    stubFetch(csrf(), response(400, { errors: [{ field: "quantity", code: "Min" }] }));
+
+    await expect(adminPost("/x", {}, cookies)).resolves.toEqual({ kind: "invalid", fields: ["quantity"] });
+  });
+
+  it("maps the other answers", async () => {
+    for (const [status, kind] of [
+      [401, "unauthorized"],
+      [403, "forbidden"],
+      [404, "not-found"],
+      [500, "failed"],
+    ] as const) {
+      stubFetch(csrf(), response(status));
+      await expect(adminPost("/x", {}, cookies)).resolves.toEqual({ kind });
+    }
   });
 });
