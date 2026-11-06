@@ -9,6 +9,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.util.Map;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "product_variants")
@@ -23,6 +26,9 @@ public class ProductVariant {
     private Product product;
 
     private String sku;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Map<String, String> attributes;
 
     private BigDecimal price;
 
@@ -41,6 +47,10 @@ public class ProductVariant {
 
     public String getSku() {
         return sku;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
     }
 
     public BigDecimal getPrice() {

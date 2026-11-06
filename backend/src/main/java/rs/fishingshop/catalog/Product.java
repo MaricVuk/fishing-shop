@@ -27,6 +27,8 @@ public class Product {
 
     private String brand;
 
+    private String description;
+
     @Column(name = "image_url")
     private String imageUrl;
 
@@ -52,6 +54,10 @@ public class Product {
 
     public String getBrand() {
         return brand;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public String getImageUrl() {

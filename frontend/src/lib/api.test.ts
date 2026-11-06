@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, fetchCategories, fetchProducts } from "@/lib/api";
+import {
+  ApiError,
+  fetchCategories,
+  fetchProduct,
+  fetchProducts,
+} from "@/lib/api";
 import type { ProductQuery } from "@/lib/types";
 
 const query: ProductQuery = { category: null, q: "", sort: "name", page: 1 };
@@ -57,6 +62,34 @@ describe("fetchProducts", () => {
       status: 400,
     });
     await expect(fetchProducts(query)).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe("fetchProduct", () => {
+  it("requests the product by id and returns the parsed body", async () => {
+    const product = { id: 7, name: "Catana", variants: [] };
+    const fetchMock = mockFetch({ json: async () => product });
+
+    await expect(fetchProduct(7)).resolves.toEqual(product);
+
+    const url = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(url.pathname).toBe("/api/products/7");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ cache: "no-store" });
+  });
+
+  it("returns null when the product does not exist", async () => {
+    mockFetch({ ok: false, status: 404 });
+
+    await expect(fetchProduct(999)).resolves.toBeNull();
+  });
+
+  it("throws ApiError for other failures", async () => {
+    mockFetch({ ok: false, status: 500 });
+
+    await expect(fetchProduct(1)).rejects.toMatchObject({
+      name: "ApiError",
+      status: 500,
+    });
   });
 });
 

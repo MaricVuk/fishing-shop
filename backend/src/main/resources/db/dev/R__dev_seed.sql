@@ -16,7 +16,7 @@ INSERT INTO seed_catalog VALUES
     ('stapovi', 'Daiwa Ninja X Spin', 'Daiwa', 'Pouzdan spin štap za sve nivoe iskustva.', 'NIX-270', '{"length":"2.7m"}', 5600.00, 0),
     ('stapovi', 'Savage Gear SG2 Spin', 'Savage Gear', 'Brz štap za varalice srednje težine.', 'SG2-210', '{"length":"2.1m"}', 11900.00, 3),
     ('stapovi', 'Savage Gear SG2 Spin', 'Savage Gear', 'Brz štap za varalice srednje težine.', 'SG2-240', '{"length":"2.4m"}', 12900.00, 4),
-    ('stapovi', 'Fox Rage Warrior', 'Fox Rage', 'Robustan štap za grabljivice.', 'FRW-270', '{"length":"2.7m","action":"fast"}', 8900.00, 6),
+    ('stapovi', 'Fox Rage Warrior', 'Fox Rage', 'Robustan štap za grabljivice.', 'FRW-270', '{"length":"2.7m","action":"brza"}', 8900.00, 6),
     ('stapovi', 'Mikado Sensei Feeder', 'Mikado', 'Fider štap za ribolov na dnu.', 'MSF-330', '{"length":"3.3m"}', 7400.00, 4),
     ('stapovi', 'Mikado Sensei Feeder', 'Mikado', 'Fider štap za ribolov na dnu.', 'MSF-360', '{"length":"3.6m"}', 7900.00, 1),
     ('masinice', 'Shimano Sienna FG', 'Shimano', 'Mašinica sa prednjom kočnicom za svakodnevni ribolov.', 'SIE-2500', '{"size":"2500"}', 4200.00, 10),
@@ -31,18 +31,18 @@ INSERT INTO seed_catalog VALUES
     ('najlon-i-upletenica', 'Power Pro Spectra', 'Power Pro', 'Upletenica visoke nosivosti, bez rastezanja.', 'PPS-017', '{"diameter":"0.17mm"}', 4100.00, 0),
     ('najlon-i-upletenica', 'Shimano Kairiki 8', 'Shimano', 'Osmostruka upletenica, glatka i tiha.', 'KAI-015', '{"diameter":"0.15mm"}', 5600.00, 9),
     ('najlon-i-upletenica', 'Mikado Fluorocarbon Leader', 'Mikado', 'Fluorokarbonski predvez, skoro nevidljiv pod vodom.', 'MFL-040', '{"diameter":"0.40mm"}', 1800.00, 20),
-    ('varalice', 'Rapala Original Floater', 'Rapala', 'Klasičan plivajući vobler.', 'ROF-S', '{"color":"silver"}', 1500.00, 15),
-    ('varalice', 'Rapala Original Floater', 'Rapala', 'Klasičan plivajući vobler.', 'ROF-P', '{"color":"perch"}', 1500.00, 11),
-    ('varalice', 'Savage Gear Line Thru Pike', 'Savage Gear', 'Realističan vobler za štuku.', 'SGP-SH', '{"color":"shiner"}', 3200.00, 5),
-    ('varalice', 'Savage Gear Line Thru Pike', 'Savage Gear', 'Realističan vobler za štuku.', 'SGP-FT', '{"color":"firetiger"}', 3200.00, 0),
-    ('varalice', 'Mepps Aglia', 'Mepps', 'Obrtna blešnja za pastrmku i grgeča.', 'MAG-3S', '{"size":"3","color":"silver"}', 750.00, 30),
-    ('varalice', 'Mepps Aglia', 'Mepps', 'Obrtna blešnja za pastrmku i grgeča.', 'MAG-3G', '{"size":"3","color":"gold"}', 750.00, 18),
+    ('varalice', 'Rapala Original Floater', 'Rapala', 'Klasičan plivajući vobler.', 'ROF-S', '{"color":"srebrna"}', 1500.00, 15),
+    ('varalice', 'Rapala Original Floater', 'Rapala', 'Klasičan plivajući vobler.', 'ROF-P', '{"color":"grgeč"}', 1500.00, 11),
+    ('varalice', 'Savage Gear Line Thru Pike', 'Savage Gear', 'Realističan vobler za štuku.', 'SGP-SH', '{"color":"ukljeva"}', 3200.00, 5),
+    ('varalice', 'Savage Gear Line Thru Pike', 'Savage Gear', 'Realističan vobler za štuku.', 'SGP-FT', '{"color":"vatreni tigar"}', 3200.00, 0),
+    ('varalice', 'Mepps Aglia', 'Mepps', 'Obrtna blešnja za pastrmku i grgeča.', 'MAG-3S', '{"size":"3","color":"srebrna"}', 750.00, 30),
+    ('varalice', 'Mepps Aglia', 'Mepps', 'Obrtna blešnja za pastrmku i grgeča.', 'MAG-3G', '{"size":"3","color":"zlatna"}', 750.00, 18),
     ('varalice', 'Westin Shad Teez', 'Westin', 'Gumeni šad sa pokretnim repom.', 'WST-09', '{"length":"9cm"}', 1300.00, 14),
     ('udice-i-pribor', 'Mustad Ultra Point', 'Mustad', 'Oštre udice za svaku vrstu mamca.', 'MUP-04', '{"size":"4"}', 380.00, 100),
     ('udice-i-pribor', 'Mustad Ultra Point', 'Mustad', 'Oštre udice za svaku vrstu mamca.', 'MUP-06', '{"size":"6"}', 360.00, 100),
     ('udice-i-pribor', 'Fox Matrix Landing Net', 'Fox', 'Podmetač za bezbedno vađenje ribe.', 'FMN-50', '{"size":"50cm"}', 4800.00, 3),
-    ('udice-i-pribor', 'Daiwa Tackle Box', 'Daiwa', 'Kutija sa pregradama za varalice i pribor.', 'DTB-L', '{"size":"large"}', 3100.00, 6),
-    ('udice-i-pribor', 'Daiwa Tackle Box', 'Daiwa', 'Kutija sa pregradama za varalice i pribor.', 'DTB-M', '{"size":"medium"}', 2500.00, 8);
+    ('udice-i-pribor', 'Daiwa Tackle Box', 'Daiwa', 'Kutija sa pregradama za varalice i pribor.', 'DTB-L', '{"size":"velika"}', 3100.00, 6),
+    ('udice-i-pribor', 'Daiwa Tackle Box', 'Daiwa', 'Kutija sa pregradama za varalice i pribor.', 'DTB-M', '{"size":"srednja"}', 2500.00, 8);
 
 INSERT INTO products (category_id, name, brand, description)
 SELECT DISTINCT ON (s.product_name) c.id, s.product_name, s.brand, s.description
@@ -55,7 +55,7 @@ INSERT INTO product_variants (product_id, sku, attributes, price)
 SELECT p.id, s.sku, s.attributes, s.price
 FROM seed_catalog s
 JOIN products p ON p.name = s.product_name
-ON CONFLICT (sku) DO NOTHING;
+ON CONFLICT (sku) DO UPDATE SET attributes = EXCLUDED.attributes;
 
 INSERT INTO inventory (variant_id, quantity)
 SELECT v.id, s.stock

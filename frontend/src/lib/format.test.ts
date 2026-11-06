@@ -1,5 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, productCountLabel } from "@/lib/format";
+import {
+  attributeLabel,
+  describeAttributes,
+  formatPrice,
+  productCountLabel,
+} from "@/lib/format";
+
+describe("attributeLabel", () => {
+  it("translates known attribute keys", () => {
+    expect(attributeLabel("length")).toBe("Dužina");
+    expect(attributeLabel("color")).toBe("Boja");
+  });
+
+  it("capitalizes unknown keys", () => {
+    expect(attributeLabel("weight")).toBe("Weight");
+  });
+});
+
+describe("describeAttributes", () => {
+  it("joins labeled attributes", () => {
+    expect(describeAttributes({ length: "2.7m", action: "brza" })).toBe(
+      "Dužina: 2.7m · Akcija: brza",
+    );
+  });
+
+  it("names a variant without attributes", () => {
+    expect(describeAttributes({})).toBe("Osnovna varijanta");
+  });
+});
 
 describe("formatPrice", () => {
   it("formats dinars with thousands separator and decimal comma", () => {

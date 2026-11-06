@@ -1,5 +1,6 @@
 package rs.fishingshop.catalog;
 
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,4 +34,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             """)
     Page<ProductSummary> search(
             @Param("category") String category, @Param("pattern") String pattern, Pageable pageable);
+
+    @Query("""
+            select p
+            from Product p
+            join fetch p.category
+            where p.id = :id
+              and p.active = true
+            """)
+    Optional<Product> findActiveWithCategory(@Param("id") Long id);
 }
