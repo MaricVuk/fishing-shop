@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.fishingshop.catalog.ProductVariant;
 import rs.fishingshop.catalog.ProductVariantRepository;
+import rs.fishingshop.stock.StockService;
 
 @Service
 public class OrderService {
@@ -20,10 +21,12 @@ public class OrderService {
 
     private final CustomerOrderRepository orders;
     private final ProductVariantRepository variants;
+    private final StockService stock;
 
-    public OrderService(CustomerOrderRepository orders, ProductVariantRepository variants) {
+    public OrderService(CustomerOrderRepository orders, ProductVariantRepository variants, StockService stock) {
         this.orders = orders;
         this.variants = variants;
+        this.stock = stock;
     }
 
     @Transactional
@@ -58,6 +61,7 @@ public class OrderService {
             throw OrderRejectedException.totalTooLarge();
         }
 
+        stock.take(quantities);
         return OrderResponse.from(orders.save(order));
     }
 

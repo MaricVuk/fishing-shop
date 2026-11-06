@@ -3,6 +3,7 @@ package rs.fishingshop;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,7 +45,7 @@ class OrderApiTests extends CatalogTestSupport {
     void catalog() {
         long product = product("stapovi", "Order Rod", "Acme", true);
         variantWithAttributes(product, "OR-240", "{\"length\":\"2.4m\"}", "4500.00", true, 5);
-        variantWithAttributes(product, "OR-270", "{\"length\":\"2.7m\"}", "4900.00", true, 0);
+        variantWithAttributes(product, "OR-270", "{\"length\":\"2.7m\"}", "4900.00", true, 3);
         shortRod = variantId("OR-240");
         longRod = variantId("OR-270");
     }
@@ -68,8 +69,8 @@ class OrderApiTests extends CatalogTestSupport {
     @Test
     void totalIsExactAndStoredForFractionalPrices() throws Exception {
         long product = product("stapovi", "Fraction Rod", "Acme", true);
-        variant(product, "FR-A", "1999.99", true, 1);
-        variant(product, "FR-B", "0.10", true, 1);
+        variant(product, "FR-A", "1999.99", true, 3);
+        variant(product, "FR-B", "0.10", true, 7);
 
         MvcResult result = placeOrder(CUSTOMER, item(variantId("FR-A"), 3) + "," + item(variantId("FR-B"), 7))
                 .andExpect(status().isCreated())
@@ -170,6 +171,46 @@ class OrderApiTests extends CatalogTestSupport {
         placeOrder(customer, item(shortRod, 1))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[?(@.field == 'customer.email')].code").value("Email"));
+    }
+
+    @Test
+    void rejectsAnOrderForMoreUnitsThanInStockAndKeepsTheStock() throws Exception {
+        int before = orderCount();
+
+        placeOrder(CUSTOMER, item(shortRod, 6) + "," + item(longRod, 1))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.insufficientStockVariantIds", contains((int) shortRod)));
+
+        assertThat(orderCount()).isEqualTo(before);
+        assertThat(stockOf(shortRod)).isEqualTo(5);
+        assertThat(stockOf(longRod)).isEqualTo(3);
+    }
+
+    @Test
+    void listsEveryVariantWithoutEnoughStock() throws Exception {
+        long product = product("stapovi", "Empty Rod", "Acme", true);
+        variant(product, "OR-EMPTY", "100.00", true, 0);
+        long empty = variantId("OR-EMPTY");
+
+        placeOrder(CUSTOMER, item(empty, 1) + "," + item(longRod, 4) + "," + item(shortRod, 1))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.insufficientStockVariantIds", hasSize(2)))
+                .andExpect(jsonPath("$.insufficientStockVariantIds", containsInAnyOrder(
+                        (int) empty, (int) longRod)));
+    }
+
+    @Test
+    void treatsAVariantWithoutAStockRowAsOutOfStock() throws Exception {
+        long product = product("stapovi", "Rowless Rod", "Acme", true);
+        long rowless = jdbc.queryForObject("""
+                INSERT INTO product_variants (product_id, sku, attributes, price, active)
+                VALUES (?, 'OR-ROWLESS', '{}'::jsonb, 100.00, TRUE) RETURNING id
+                """, Long.class, product);
+
+        placeOrder(CUSTOMER, item(rowless, 1))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.insufficientStockVariantIds", contains((int) rowless)));
     }
 
     @Test
@@ -355,6 +396,10 @@ class OrderApiTests extends CatalogTestSupport {
 
     private int orderCount() {
         return jdbc.queryForObject("SELECT count(*) FROM orders", Integer.class);
+    }
+
+    private int stockOf(long variantId) {
+        return jdbc.queryForObject("SELECT quantity FROM inventory WHERE variant_id = ?", Integer.class, variantId);
     }
 
     private int itemCount() {
