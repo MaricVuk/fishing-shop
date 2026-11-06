@@ -51,7 +51,7 @@ public class OrderItem {
         this.order = order;
     }
 
-    BigDecimal lineTotal() {
+    public BigDecimal lineTotal() {
         return unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 

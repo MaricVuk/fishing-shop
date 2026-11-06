@@ -40,3 +40,44 @@ export type StockMovement = {
 };
 
 export type StockLevel = { variantId: number; quantity: number };
+
+export type OrderStatus = "NEW" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+
+export type AdminOrderRow = {
+  id: number;
+  createdAt: string;
+  status: OrderStatus;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  itemCount: number;
+};
+
+export type AuditEntry = {
+  id: number;
+  actorEmail: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  oldValue: Record<string, unknown> | null;
+  newValue: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export type AdminOrderDetail = {
+  id: number;
+  status: OrderStatus;
+  createdAt: string;
+  total: number;
+  customer: { name: string; email: string; phone: string | null; shippingAddress: string };
+  items: {
+    variantId: number;
+    productName: string;
+    sku: string;
+    unitPrice: number;
+    quantity: number;
+    lineTotal: number;
+  }[];
+  allowedStatuses: OrderStatus[];
+  history: AuditEntry[];
+};

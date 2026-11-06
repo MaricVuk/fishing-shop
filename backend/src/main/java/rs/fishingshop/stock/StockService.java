@@ -64,6 +64,28 @@ public class StockService {
         });
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Map<Long, Integer> returnForOrder(Long orderId) {
+        // The amount comes from the order's own movements, not from its items: an order placed
+        // before stock was taken (Phase 1) gives nothing back, and nothing is returned twice.
+        limitLockWait();
+        Map<Long, Integer> returned = new TreeMap<>();
+        for (StockMovementRepository.OrderStockBalance balance : movements.balanceForOrder(orderId)) {
+            int taken = Math.toIntExact(-balance.getNetChange());
+            if (taken <= 0) {
+                continue;
+            }
+            Inventory row = inventory.findForUpdate(balance.getVariantId())
+                    .orElseThrow(() -> new IllegalStateException("Stock row for variant " + balance.getVariantId()
+                            + " is missing"));
+            row.increase(taken);
+            movements.save(new StockMovement(
+                    balance.getVariantId(), StockMovementType.RETURN, taken, row.getQuantity(), orderId, null));
+            returned.put(balance.getVariantId(), taken);
+        }
+        return returned;
+    }
+
     @Transactional
     public StockChange receive(Long variantId, int quantity, String reason) {
         if (quantity <= 0 || quantity > MAX_DELIVERY) {

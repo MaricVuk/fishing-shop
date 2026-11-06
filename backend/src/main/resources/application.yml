@@ -57,6 +57,9 @@ shop:
     max-failures-per-email: 5
     max-failures-per-address: 50
     failure-window: 15m
+  orders:
+    max-per-address: 20
+    rate-window: 10m
   bootstrap:
     owner-email: ${SHOP_OWNER_EMAIL:}
     owner-password: ${SHOP_OWNER_PASSWORD:}
