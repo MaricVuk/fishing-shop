@@ -43,11 +43,11 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Rezervacija zalihe naspram direktnog skidanja (korpa koja "drži" artikal)
 - Integracioni testovi sa pravim Postgresom (Testcontainers), ne H2
 
-## Faza 3: Zaposleni, uloge, audit log (sledeća)
+## Faza 3: Zaposleni, uloge, audit log (gotova)
 
-- [ ] Login (JWT ili sesija), hashovanje lozinki (BCrypt/Argon2)
-- [ ] Uloge: vlasnik, prodavac, magacioner (RBAC)
-- [ ] Audit log: ko, šta, kada, stara i nova vrednost
+- [x] Login (sesija u bazi, ne JWT), hashovanje lozinki (BCrypt)
+- [x] Uloge: vlasnik, prodavac, magacioner (RBAC)
+- [x] Audit log: ko, šta, kada, stara i nova vrednost
 
 **Tehničke stvari na koje treba obratiti pažnju**
 - Autentikacija naspram autorizacije; metodska zaštita (`@PreAuthorize`)
@@ -56,7 +56,12 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Audit log se piše u istoj transakciji kao izmena, ne sme da se menja ni briše
 - Tajne (lozinke, ključevi) samo kroz env varijable, nikad u repou
 
-## Faza 4: Pozadinski poslovi
+**Šta su odluke donele**
+- [ADR 0004](adr/0004-employee-login-with-server-sessions.md): sesija u Postgresu umesto JWT-a, verzija sesije, ograničenje pokušaja prijave
+- [ADR 0005](adr/0005-append-only-audit-log.md): audit log kojem trigger u bazi ne dozvoljava izmenu ni brisanje
+- Sigurnosni pregled sa 4 nezavisna recenzenta (36 nalaza); ostatak je zapisan kao dug u [DECISIONS.md](DECISIONS.md)
+
+## Faza 4: Pozadinski poslovi (sledeća)
 
 - [ ] RabbitMQ red, worker servis
 - [ ] Mejl potvrde, generisanje PDF računa
@@ -87,7 +92,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
 - [ ] Strukturirani logovi, health check, osnovne metrike (Actuator)
 - [ ] Deploy na javni link (README mora da ima link koji radi)
-- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md) i [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md))
+- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md) i [audit log](adr/0005-append-only-audit-log.md))
 
 ## Otvorene odluke
 
