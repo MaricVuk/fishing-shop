@@ -1,0 +1,22 @@
+name: fishing-shop
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: fishing-shop-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-shop}
+      POSTGRES_USER: ${POSTGRES_USER:-shop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shop_dev_password}
+    ports:
+      - "127.0.0.1:5432:5432"   # localhost only, the dev password is weak
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
