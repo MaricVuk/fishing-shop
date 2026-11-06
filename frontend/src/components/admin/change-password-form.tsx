@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { adminPost } from "@/lib/admin-browser";
+import { focusFirstInvalid } from "@/lib/focus";
 import { validatePassword } from "@/lib/admin-team";
 
 type Errors = { current?: string; next?: string; repeat?: string };
@@ -29,17 +30,18 @@ export function ChangePasswordForm() {
     if (repeat !== next) found.repeat = "Lozinke se ne poklapaju.";
     setErrors(found);
     setMessage(null);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0) {
+      focusFirstInvalid(found, [["current", "current-password"], ["next", "new-password"], ["repeat", "repeat-password"]]);
+      return;
+    }
 
     setBusy(true);
     const result = await adminPost("/api/auth/password", { currentPassword: current, newPassword: next });
     setBusy(false);
 
     if (result.kind === "ok") {
-      setCurrent("");
-      setNext("");
-      setRepeat("");
-      setMessage({ tone: "success", text: "Lozinka je promenjena. Ostale prijave su odjavljene." });
+      router.replace("/admin/login?changed=1");
+      router.refresh();
     } else if (result.kind === "invalid" && result.fields.includes("currentPassword")) {
       setErrors({ current: "Trenutna lozinka nije tačna." });
     } else if (result.kind === "unauthorized") {

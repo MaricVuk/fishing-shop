@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { adminPost, type AdminPostResult } from "@/lib/admin-browser";
+import { focusFirstInvalid } from "@/lib/focus";
 import { roleLabel } from "@/lib/admin-nav";
 import { ROLES, validateNewEmployee, validatePassword, type NewEmployeeErrors } from "@/lib/admin-team";
 import type { AdminEmployee, EmployeeRole } from "@/lib/admin-types";
@@ -13,6 +14,8 @@ type Message = { tone: "success" | "error"; text: string } | null;
 
 function failure(result: Exclude<AdminPostResult<unknown>, { kind: "ok" }>): string {
   switch (result.kind) {
+    case "rejected":
+      return "Server je odbio unos.";
     case "conflict":
       return "Ova izmena nije dozvoljena: email je zauzet, ili bi radnja ostala bez vlasnika.";
     case "invalid":
@@ -115,6 +118,9 @@ export function NewEmployeeForm() {
     const checked = validateNewEmployee(values);
     if (!checked.ok) {
       setErrors(checked.errors);
+      focusFirstInvalid(checked.errors, [
+        ["fullName", "new-name"], ["email", "new-email"], ["role", "new-role"], ["password", "new-password"],
+      ]);
       return;
     }
     setBusy(true);
@@ -234,6 +240,7 @@ export function PasswordResetForm({ employeeId }: { employeeId: number }) {
     const problem = validatePassword(password);
     if (problem) {
       setError(problem);
+      document.getElementById("reset-password")?.focus();
       return;
     }
     setBusy(true);

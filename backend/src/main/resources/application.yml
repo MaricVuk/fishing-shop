@@ -54,7 +54,8 @@ shop:
   auth:
     secure-cookies: true
     session-max-age: 8h
-    max-failures-per-email: 5
+    max-failures-per-pair: 5
+    max-failures-per-email: 100
     max-failures-per-address: 50
     failure-window: 15m
   orders:

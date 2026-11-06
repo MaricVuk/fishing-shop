@@ -66,7 +66,8 @@ class AdminStockService {
         if (change.changed()) {
             audit.record(actor, AuditAction.STOCK_ADJUSTED, AuditEntityType.VARIANT, variantId,
                     Map.of("quantity", change.before()),
-                    Map.of("quantity", change.after(), "change", change.after() - change.before(), "reason", reason));
+                    Map.of("quantity", change.after(), "change", change.after() - change.before(),
+                            "counted", request.countedQuantity(), "reserved", change.reserved(), "reason", reason));
         }
         return new StockLevel(variantId, change.after());
     }

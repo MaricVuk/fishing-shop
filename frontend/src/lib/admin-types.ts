@@ -25,9 +25,10 @@ export type StockRow = {
   price: number;
   active: boolean;
   quantity: number;
+  reserved: number;
 };
 
-export type StockMovementType = "IN" | "OUT" | "ADJUSTMENT";
+export type StockMovementType = "IN" | "OUT" | "ADJUSTMENT" | "RETURN";
 
 export type StockMovement = {
   id: number;

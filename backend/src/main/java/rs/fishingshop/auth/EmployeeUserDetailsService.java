@@ -19,6 +19,11 @@ class EmployeeUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) {
+        // The database lower-cases some characters differently from Java, so a spelling with
+        // non-ASCII letters could find an account that the login limiter counts under another key.
+        if (!email.chars().allMatch(character -> character > 0x20 && character < 0x7f)) {
+            throw new UsernameNotFoundException("Unknown employee");
+        }
         return employees.findByEmailIgnoreCase(email.trim())
                 .map(EmployeePrincipal::new)
                 .orElseThrow(() -> new UsernameNotFoundException("Unknown employee"));

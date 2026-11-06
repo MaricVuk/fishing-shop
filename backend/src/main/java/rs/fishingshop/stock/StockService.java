@@ -17,6 +17,7 @@ public class StockService {
 
     static final String LOCK_TIMEOUT = "3s";
     static final int MAX_DELIVERY = 100_000;
+    public static final int MAX_STOCK = 1_000_000;
     static final int MAX_REASON_LENGTH = 200;
 
     private final InventoryRepository inventory;
@@ -94,10 +95,13 @@ public class StockService {
         String note = optionalReason(reason);
         Inventory row = lockOrCreate(variantId);
         int before = row.getQuantity();
+        if ((long) before + quantity > MAX_STOCK) {
+            throw StockRejectedException.limitExceeded(variantId, MAX_STOCK);
+        }
         row.increase(quantity);
         movements.save(new StockMovement(
                 variantId, StockMovementType.IN, quantity, row.getQuantity(), null, note));
-        return new StockChange(variantId, before, row.getQuantity());
+        return new StockChange(variantId, before, row.getQuantity(), 0);
     }
 
     @Transactional
@@ -111,14 +115,21 @@ public class StockService {
         }
         Inventory row = lockOrCreate(variantId);
         int before = row.getQuantity();
-        int change = countedQuantity - before;
-        if (change == 0) {
-            return new StockChange(variantId, before, before);
+        // The count is of the shelf. The units of orders that are not shipped yet are still on it,
+        // but they are already taken out of the quantity that can be sold.
+        int reserved = reservedByOpenOrders(variantId);
+        if (countedQuantity < reserved) {
+            throw StockRejectedException.belowReserved(variantId, reserved);
         }
-        row.setCounted(countedQuantity);
+        int target = countedQuantity - reserved;
+        int change = target - before;
+        if (change == 0) {
+            return new StockChange(variantId, before, before, reserved);
+        }
+        row.setCounted(target);
         movements.save(new StockMovement(
                 variantId, StockMovementType.ADJUSTMENT, change, row.getQuantity(), null, note));
-        return new StockChange(variantId, before, row.getQuantity());
+        return new StockChange(variantId, before, row.getQuantity(), reserved);
     }
 
     @Transactional(readOnly = true)
@@ -133,6 +144,15 @@ public class StockService {
         return movements.findByVariantIdOrderByIdAsc(variantId).stream()
                 .map(StockMovement::toEntry)
                 .toList();
+    }
+
+    private int reservedByOpenOrders(Long variantId) {
+        Long held = jdbc.queryForObject("""
+                SELECT COALESCE(-SUM(m.quantity_change), 0)
+                FROM stock_movements m JOIN orders o ON o.id = m.order_id
+                WHERE m.variant_id = ? AND o.status IN ('NEW', 'CONFIRMED')
+                """, Long.class, variantId);
+        return Math.toIntExact(held);
     }
 
     private Inventory lockOrCreate(Long variantId) {

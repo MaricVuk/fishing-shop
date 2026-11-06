@@ -12,12 +12,13 @@ public record StockRow(
         Map<String, String> attributes,
         BigDecimal price,
         boolean active,
-        int quantity) {
+        int quantity,
+        int reserved) {
 
     public StockRow(Long variantId, Long productId, String productName, String brand, String sku,
             Map<String, String> attributes, BigDecimal price, boolean variantActive, boolean productActive,
-            Integer quantity) {
+            Integer quantity, Number reserved) {
         this(variantId, productId, productName, brand, sku, attributes, price, variantActive && productActive,
-                quantity == null ? 0 : quantity);
+                quantity == null ? 0 : quantity, reserved == null ? 0 : reserved.intValue());
     }
 }

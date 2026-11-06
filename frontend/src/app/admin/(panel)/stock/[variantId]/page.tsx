@@ -43,14 +43,19 @@ export default async function StockVariantPage({ params }: PageProps<"/admin/sto
           )}
         </div>
         <div className="rounded-xl border px-6 py-4 text-right">
-          <p className="text-sm text-muted-foreground">Na stanju</p>
+          <p className="text-sm text-muted-foreground">Slobodno za prodaju</p>
           <p className="text-4xl font-bold tabular-nums">{row.quantity}</p>
+          {row.reserved > 0 && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              + {row.reserved} rezervisano za otvorene porudžbine
+            </p>
+          )}
         </div>
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <ReceiptForm variantId={row.variantId} />
-        <CountForm variantId={row.variantId} currentQuantity={row.quantity} />
+        <CountForm variantId={row.variantId} currentQuantity={row.quantity} reserved={row.reserved} />
       </div>
 
       <h2 className="mt-10 text-xl font-semibold">Istorija kretanja</h2>

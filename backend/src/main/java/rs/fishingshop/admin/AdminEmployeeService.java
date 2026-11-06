@@ -40,6 +40,7 @@ class AdminEmployeeService {
 
     @Transactional
     EmployeeResponse create(AuditActor actor, CreateEmployeeRequest request) {
+        String hash = passwordEncoder.encode(request.password());
         requireActiveOwner(actor);
         String email = request.email().toLowerCase(Locale.ROOT);
         if (employees.findByEmailIgnoreCase(email).isPresent()) {
@@ -47,10 +48,12 @@ class AdminEmployeeService {
         }
         Employee employee;
         try {
-            employee = employees.saveAndFlush(new Employee(email, request.fullName().trim(),
-                    passwordEncoder.encode(request.password()), request.role()));
-        } catch (DataIntegrityViolationException duplicate) {
-            throw EmployeeRejectedException.emailTaken();
+            employee = employees.saveAndFlush(new Employee(email, request.fullName().trim(), hash, request.role()));
+        } catch (DataIntegrityViolationException failure) {
+            if (failure.getMessage() != null && failure.getMessage().contains("uq_employees_email_lower")) {
+                throw EmployeeRejectedException.emailTaken();
+            }
+            throw failure;
         }
         audit.record(actor, AuditAction.EMPLOYEE_CREATED, AuditEntityType.EMPLOYEE, employee.getId(), null,
                 Map.of("email", employee.getEmail(), "fullName", employee.getFullName(), "role", employee.getRole()));
@@ -104,8 +107,9 @@ class AdminEmployeeService {
 
     @Transactional
     void resetPassword(AuditActor actor, Long id, String password) {
+        String hash = passwordEncoder.encode(password);
         Employee target = lockTarget(actor, id);
-        target.replacePasswordHash(passwordEncoder.encode(password));
+        target.replacePasswordHash(hash);
         sessions.endAll(target.getEmail());
         audit.record(actor, AuditAction.EMPLOYEE_PASSWORD_RESET, AuditEntityType.EMPLOYEE, id, null, null);
     }

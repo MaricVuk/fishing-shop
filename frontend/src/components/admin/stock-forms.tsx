@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { adminPost, type AdminPostResult } from "@/lib/admin-browser";
+import { focusFirstInvalid } from "@/lib/focus";
 import {
   validateCount,
   validateReceipt,
@@ -26,6 +27,8 @@ function failureText(result: Exclude<AdminPostResult<StockLevel>, { kind: "ok" }
       return "Nemate pravo da menjate zalihu.";
     case "not-found":
       return "Ova varijanta više ne postoji.";
+    case "rejected":
+      return "Server je odbio izmenu: zaliha ne sme da pređe 1.000.000, a popis ne sme da bude manji od onoga što je rezervisano za otvorene porudžbine.";
     default:
       return "Izmena nije sačuvana. Pokušajte ponovo za trenutak.";
   }
@@ -35,6 +38,7 @@ function useStockForm(
   validate: (values: StockFormValues) => StockFormResult,
   send: (quantity: number, reason: string | null) => Promise<AdminPostResult<StockLevel>>,
   successText: (level: StockLevel) => string,
+  ids: Record<keyof StockFormValues, string>,
 ) {
   const router = useRouter();
   const [values, setValues] = useState<StockFormValues>(EMPTY);
@@ -54,6 +58,7 @@ function useStockForm(
     const checked = validate(values);
     if (!checked.ok) {
       setErrors(checked.errors);
+      focusFirstInvalid(checked.errors, [["quantity", ids.quantity], ["reason", ids.reason]]);
       return;
     }
 
@@ -92,6 +97,7 @@ export function ReceiptForm({ variantId }: { variantId: number }) {
     validateReceipt,
     (quantity, reason) => adminPost(`/api/admin/stock/${variantId}/receipts`, { quantity, reason }),
     (level) => `Prijem je sačuvan. Novo stanje: ${level.quantity}.`,
+    { quantity: "receipt-quantity", reason: "receipt-reason" },
   );
 
   return (
@@ -124,14 +130,23 @@ export function ReceiptForm({ variantId }: { variantId: number }) {
   );
 }
 
-export function CountForm({ variantId, currentQuantity }: { variantId: number; currentQuantity: number }) {
+export function CountForm({
+  variantId,
+  currentQuantity,
+  reserved,
+}: {
+  variantId: number;
+  currentQuantity: number;
+  reserved: number;
+}) {
   const form = useStockForm(
     validateCount,
     (countedQuantity, reason) => adminPost(`/api/admin/stock/${variantId}/counts`, { countedQuantity, reason }),
     (level) =>
       level.quantity === currentQuantity
         ? "Stanje se poklapa sa popisom, ništa nije promenjeno."
-        : `Popis je sačuvan. Novo stanje: ${level.quantity}.`,
+        : `Popis je sačuvan. Novo stanje za prodaju: ${level.quantity}.`,
+    { quantity: "count-quantity", reason: "count-reason" },
   );
 
   return (
@@ -139,13 +154,13 @@ export function CountForm({ variantId, currentQuantity }: { variantId: number; c
       <h2 className="text-lg font-semibold">Popis</h2>
       <TextField
         id="count-quantity"
-        label="Izbrojana količina"
+        label="Izbrojano na polici"
         value={form.values.quantity}
         onChange={(value) => form.update("quantity", value)}
         error={form.errors.quantity}
         inputMode="numeric"
         maxLength={7}
-        hint={`Trenutno u sistemu: ${currentQuantity}.`}
+        hint={`U sistemu je ${currentQuantity} slobodno za prodaju i ${reserved} rezervisano za otvorene porudžbine, pa na polici treba da bude ${currentQuantity + reserved}.`}
       />
       <TextField
         id="count-reason"

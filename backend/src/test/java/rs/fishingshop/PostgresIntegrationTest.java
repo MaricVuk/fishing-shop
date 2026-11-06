@@ -8,7 +8,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest
 abstract class PostgresIntegrationTest {
 
-    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16");
+    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16")
+            .withCommand("postgres", "-c", "max_connections=300");
 
     static {
         postgres.start();

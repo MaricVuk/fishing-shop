@@ -11,7 +11,8 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
           <tr>
             <th scope="col" className="px-4 py-3 font-medium">Proizvod</th>
             <th scope="col" className="px-4 py-3 font-medium">SKU</th>
-            <th scope="col" className="px-4 py-3 text-right font-medium">Na stanju</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">Slobodno</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">Rezervisano</th>
             <th scope="col" className="px-4 py-3"><span className="sr-only">Akcije</span></th>
           </tr>
         </thead>
@@ -35,6 +36,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                   <span className="font-semibold">{row.quantity}</span>
                 )}
               </td>
+              <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{row.reserved}</td>
               <td className="px-4 py-3 text-right">
                 <Link
                   href={`/admin/stock/${row.variantId}`}

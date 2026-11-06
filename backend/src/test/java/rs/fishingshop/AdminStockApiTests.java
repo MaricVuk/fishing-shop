@@ -100,6 +100,7 @@ class AdminStockApiTests extends EmployeeTestSupport {
                     .andExpect(jsonPath("$.content[0].quantity").value(0))
                     .andExpect(jsonPath("$.content[1].sku").value(SKU_PREFIX + "ROD"))
                     .andExpect(jsonPath("$.content[1].quantity").value(5))
+                    .andExpect(jsonPath("$.content[1].reserved").value(0))
                     .andExpect(jsonPath("$.content[1].productName").value("Admin Stock Rod"))
                     .andExpect(jsonPath("$.content[1].attributes.length").value("2.7m"))
                     .andExpect(jsonPath("$.totalElements").value(2));

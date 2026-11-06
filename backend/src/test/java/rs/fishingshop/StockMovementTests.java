@@ -113,12 +113,14 @@ class StockMovementTests extends CommittedOrderTestSupport {
         placeOrder(variant, 5).andExpect(status().isCreated());
         stock.receive(variant, 4, null);
 
+        // The shelf held 15, and 3 of them belong to the open first order, so 12 are left to sell.
+
         List<StockMovementEntry> history = stock.history(variant);
         assertThat(history).extracting(StockMovementEntry::type).containsExactly(
                 StockMovementType.IN, StockMovementType.OUT, StockMovementType.ADJUSTMENT,
                 StockMovementType.OUT, StockMovementType.IN);
         assertThat(history.stream().mapToInt(StockMovementEntry::quantityChange).sum()).isEqualTo(stockOf(variant));
-        assertThat(history.getLast().quantityAfter()).isEqualTo(stockOf(variant)).isEqualTo(14);
+        assertThat(history.getLast().quantityAfter()).isEqualTo(stockOf(variant)).isEqualTo(11);
     }
 
     @Test

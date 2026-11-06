@@ -34,6 +34,9 @@ public class Employee {
     @Column(nullable = false)
     private boolean active;
 
+    @Column(name = "session_version", nullable = false)
+    private int sessionVersion;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -51,10 +54,12 @@ public class Employee {
 
     public void changeRole(EmployeeRole role) {
         this.role = role;
+        this.sessionVersion++;
     }
 
     public void deactivate() {
         this.active = false;
+        this.sessionVersion++;
     }
 
     public void activate() {
@@ -63,6 +68,11 @@ public class Employee {
 
     public void replacePasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+        this.sessionVersion++;
+    }
+
+    public int getSessionVersion() {
+        return sessionVersion;
     }
 
     public Instant getCreatedAt() {

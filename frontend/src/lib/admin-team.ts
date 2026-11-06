@@ -85,7 +85,11 @@ export function describeAudit(entry: AuditEntry): string {
     case "STOCK_RECEIVED":
       return withReason(`Prijem +${after.received} (${before.quantity} → ${after.quantity}).`);
     case "STOCK_ADJUSTED":
-      return withReason(`Popis ${before.quantity} → ${after.quantity}.`);
+      return typeof after.counted === "number"
+        ? withReason(
+            `Popis police: izbrojano ${after.counted}, rezervisano ${after.reserved}, slobodno ${before.quantity} → ${after.quantity}.`,
+          )
+        : withReason(`Popis ${before.quantity} → ${after.quantity}.`);
     case "ORDER_STATUS_CHANGED":
       return describeChange(entry);
     case "EMPLOYEE_CREATED":

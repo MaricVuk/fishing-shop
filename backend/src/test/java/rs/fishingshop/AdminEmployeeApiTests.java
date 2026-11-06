@@ -63,6 +63,7 @@ class AdminEmployeeApiTests extends EmployeeTestSupport {
                 post("/api/admin/employees/{id}/role", sellerId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"OWNER\"}"),
                 post("/api/admin/employees/{id}/deactivate", sellerId).with(csrf()),
+                post("/api/admin/employees/{id}/activate", sellerId).with(csrf()),
                 post("/api/admin/employees/{id}/password", sellerId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"" + NEW_PASSWORD + "\"}"))) {
             mvc.perform(request).andExpect(status().isUnauthorized());
@@ -235,7 +236,7 @@ class AdminEmployeeApiTests extends EmployeeTestSupport {
     }
 
     @Test
-    void everyEmployeeChangesTheirOwnPasswordWithTheCurrentOne() throws Exception {
+    void everyEmployeeChangesTheirOwnPasswordWithTheCurrentOneAndMustLogInAgain() throws Exception {
         Cookie current = logIn(mvc, WAREHOUSE);
         Cookie other = logIn(mvc, WAREHOUSE);
 
@@ -248,9 +249,22 @@ class AdminEmployeeApiTests extends EmployeeTestSupport {
                         .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"" + NEW_PASSWORD + "\"}"))
                 .andExpect(status().isNoContent());
 
-        mvc.perform(get("/api/auth/me").cookie(current)).andExpect(status().isOk());
+        mvc.perform(get("/api/auth/me").cookie(current)).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/auth/me").cookie(other)).andExpect(status().isUnauthorized());
         login(WAREHOUSE, NEW_PASSWORD).andExpect(status().isOk());
+    }
+
+    @Test
+    void textWithInvisibleDirectionControlsIsRefused() throws Exception {
+        Cookie owner = logIn(mvc, OWNER);
+
+        for (String name : List.of("Ana\u202EAnic", "Ana\u200BAnic", "Ana\u2066Anic")) {
+            mvc.perform(post("/api/admin/employees").with(csrf()).cookie(owner)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"x@team.test\",\"fullName\":\"" + name
+                                    + "\",\"role\":\"SELLER\",\"password\":\"" + NEW_PASSWORD + "\"}"))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
     @Test

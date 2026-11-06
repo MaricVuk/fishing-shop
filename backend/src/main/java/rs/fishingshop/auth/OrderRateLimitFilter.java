@@ -10,17 +10,20 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 class OrderRateLimitFilter extends OncePerRequestFilter {
 
-    private static final String ORDERS = "/api/orders";
     private static final int MAX_TRACKED_ADDRESSES = 10_000;
 
     private record Window(Instant startedAt, int requests) {
     }
 
+    private final PathPatternRequestMatcher orders =
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/orders");
     private final Map<String, Window> windows = new ConcurrentHashMap<>();
     private final OrderRateLimitProperties properties;
     private final ProblemWriter problems;
@@ -32,8 +35,7 @@ class OrderRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !("POST".equals(request.getMethod())
-                && (request.getContextPath() + ORDERS).equals(request.getRequestURI()));
+        return !orders.matches(request);
     }
 
     @Override
