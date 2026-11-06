@@ -108,8 +108,6 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 | Rezervacija zalihe u korpi (korpa koja "drži" artikal) | kupac može da vidi "na stanju" i dobije `422` pri porudžbini | uz prijavu, Faza 3 ili kasnije |
 | Atomski `UPDATE ... RETURNING` umesto `SELECT ... FOR UPDATE` | brže ako jedna varijanta postane usko grlo (ADR 0003) | kad merenje pokaže potrebu |
 | Količina u korpi može da bude veća od zalihe dok kupac ne pošalje porudžbinu (API vraća samo `inStock`, ne tačnu količinu) | kupac saznaje tek na checkout-u, ali dobija tačne stavke | uz rezervaciju ili "još samo N komada" |
-| `next dev` sam pravi `frontend/AGENTS.md` | fajl se pojavljuje kao nepraćen posle svakog pokretanja | odlučiti: `.gitignore` ili commit |
-| Kopija projekta u `Documents` koristi istu Docker bazu i port 3000/8080 | upisala je svoje `V4` i `V5` u lokalnu dev bazu, pa naš backend ne startuje | odmah, pre sledećeg lokalnog pokretanja |
 | Uzastopni brojevi porudžbina otkrivaju obim prodaje | konkurent iz dve porudžbine računa koliko ih ima | Faza 3, javni nasumični token |
 
 ## Urađeno
