@@ -82,7 +82,7 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 
 ## Dug i otvorene stvari
 
-Pregled na kraju Faze 1. Nijedna stavka ne blokira Fazu 2.
+Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Fazu 3.
 
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
@@ -107,6 +107,9 @@ Pregled na kraju Faze 1. Nijedna stavka ne blokira Fazu 2.
 | `server.forward-headers-strategy` i `X-Forwarded-For` za ograničenje učestalosti | iza proxy-ja svi korisnici dolaze sa IP adrese Next servera | Faza 3 |
 | Rezervacija zalihe u korpi (korpa koja "drži" artikal) | kupac može da vidi "na stanju" i dobije `422` pri porudžbini | uz prijavu, Faza 3 ili kasnije |
 | Atomski `UPDATE ... RETURNING` umesto `SELECT ... FOR UPDATE` | brže ako jedna varijanta postane usko grlo (ADR 0003) | kad merenje pokaže potrebu |
+| Količina u korpi može da bude veća od zalihe dok kupac ne pošalje porudžbinu (API vraća samo `inStock`, ne tačnu količinu) | kupac saznaje tek na checkout-u, ali dobija tačne stavke | uz rezervaciju ili "još samo N komada" |
+| `next dev` sam pravi `frontend/AGENTS.md` | fajl se pojavljuje kao nepraćen posle svakog pokretanja | odlučiti: `.gitignore` ili commit |
+| Kopija projekta u `Documents` koristi istu Docker bazu i port 3000/8080 | upisala je svoje `V4` i `V5` u lokalnu dev bazu, pa naš backend ne startuje | odmah, pre sledećeg lokalnog pokretanja |
 | Uzastopni brojevi porudžbina otkrivaju obim prodaje | konkurent iz dve porudžbine računa koliko ih ima | Faza 3, javni nasumični token |
 
 ## Urađeno
@@ -121,3 +124,4 @@ Pregled na kraju Faze 1. Nijedna stavka ne blokira Fazu 2.
 - **Revizija Faze 1** (4 paralelna recenzenta: backend, bezbednost, frontend, testovi i dokumenta, svaki nalaz proveren u kodu ili stvarnim zahtevom): nije bilo P0. Ispravljeno: stranica greške nije ponovo učitavala podatke, `500` bez `ProblemDetail` formata, neograničen `page` i telo zahteva, kontrolni znakovi i razlomljeni brojevi u porudžbini, podrazumevana lozinka i Swagger u svim profilima, fokus i pristupačnost korpe i forme, kontrast, bezbednosna zaglavlja, slabi testovi i netačnosti u dokumentima. Odbačeno: izlazak iz `/api/*` kroz proxy (5 varijanti, sve 404 ili 400) i NUL u pretrazi (vraća 200). 53 backend i 110 frontend testova.
 - **2.1**: zaliha se proverava i skida pri porudžbini pod pesimističkim zaključavanjem, redovi u rastućem redosledu `variant_id` ([ADR 0003](adr/0003-pessimistic-locking-for-stock.md)). `422` sa `insufficientStockVariantIds`, `503` sa `Retry-After` kad čekanje na red istekne. Test sa 50 kupaca je prvo pao (50 porudžbina na 1 komad), pa tek onda rešenje. Pravi rollback test bez test transakcije. 62 backend testa.
 - **2.2**: `V4` sa tabelom `stock_movements` (`IN`, `OUT`, `ADJUSTMENT`). Baza proverava predznak promene prema tipu, da samo `OUT` ima porudžbinu, da korekcija ima razlog i da stanje posle promene nije negativno. Postojeća zaliha dobija početni red (`Opening balance`), pa je zbir kretanja uvek jednak stanju. `StockService.receive` i `adjust` postoje samo kao servis, HTTP rute dolaze uz uloge u Fazi 3. Porudžbina se sad upisuje pre skidanja zalihe (kretanje pokazuje na nju), pa rollback test zaista poništava upisan red. Plugin `backend-design` nije instaliran, pa je `V4` pregledan ručno. 72 backend testa.
+- **2.3, Faza 2 zatvorena**: checkout prikazuje koje stavke nemaju dovoljno na stanju (`insufficientStockVariantIds`, sa nazivom i varijantom) i osvežava dostupnost, a za `503` kaže da je prodavnica zauzeta. Provereno u browseru na privremenoj bazi. README status. 72 backend i 116 frontend testova.
