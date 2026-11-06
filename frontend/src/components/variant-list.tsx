@@ -1,3 +1,4 @@
+import { AddToCartButton } from "@/components/add-to-cart-button";
 import { StockBadge } from "@/components/stock-badge";
 import { describeAttributes, formatPrice } from "@/lib/format";
 import type { VariantDetail } from "@/lib/types";
@@ -21,6 +22,11 @@ export function VariantList({ variants }: { variants: VariantDetail[] }) {
               {formatPrice(variant.price)}
             </p>
             <StockBadge inStock={variant.inStock} />
+            {variant.inStock && (
+              <div className="mt-2">
+                <AddToCartButton variantId={variant.id} />
+              </div>
+            )}
           </div>
         </li>
       ))}
