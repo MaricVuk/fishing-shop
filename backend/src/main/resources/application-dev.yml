@@ -7,6 +7,14 @@ spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev
 
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+      mail.smtp.starttls.required: false
+
 springdoc:
   api-docs:
     enabled: true
@@ -16,3 +24,5 @@ springdoc:
 shop:
   auth:
     secure-cookies: false
+  mail:
+    from: ${SHOP_MAIL_FROM:Ribolovački shop <prodaja@fishing-shop.test>}

@@ -18,5 +18,12 @@ services:
       timeout: 3s
       retries: 10
 
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: fishing-shop-mailpit
+    ports:
+      - "127.0.0.1:1025:1025"   # SMTP for the dev profile; nothing leaves this container
+      - "127.0.0.1:8025:8025"   # web UI with every caught email
+
 volumes:
   pgdata:

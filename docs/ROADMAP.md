@@ -63,9 +63,9 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 
 ## Faza 4: Pozadinski poslovi (u toku)
 
-- [ ] Red poslova u Postgresu (outbox), worker ([ADR 0006](adr/0006-job-queue-in-postgres.md))
+- [x] Red poslova u Postgresu (outbox), worker ([ADR 0006](adr/0006-job-queue-in-postgres.md))
 - [ ] Mejl potvrde, generisanje PDF računa
-- [ ] Retry sa exponential backoff-om, dead-letter red
+- [x] Retry sa exponential backoff-om, dead-letter red (stanje `DEAD`, admin pregled u 4.3)
 
 **Tehničke stvari na koje treba obratiti pažnju**
 - **Idempotentnost**: isti posao izvršen dvaput ne sme da pošalje dva mejla
