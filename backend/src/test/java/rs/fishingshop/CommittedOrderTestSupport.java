@@ -17,6 +17,10 @@ abstract class CommittedOrderTestSupport extends CatalogTestSupport {
                 JOIN product_variants v ON v.id = oi.variant_id
                 WHERE v.sku LIKE ?
                 """, Long.class, SKU_PREFIX + "%");
+        jdbc.update("""
+                DELETE FROM stock_movements
+                WHERE variant_id IN (SELECT id FROM product_variants WHERE sku LIKE ?)
+                """, SKU_PREFIX + "%");
         for (Long orderId : orderIds) {
             jdbc.update("DELETE FROM order_items WHERE order_id = ?", orderId);
             jdbc.update("DELETE FROM orders WHERE id = ?", orderId);
@@ -30,12 +34,22 @@ abstract class CommittedOrderTestSupport extends CatalogTestSupport {
     }
 
     protected long variantWithStock(String skuSuffix, int stock) {
-        long product = jdbc.queryForList("SELECT id FROM products WHERE name = ?", Long.class, PRODUCT_NAME)
+        variant(testProduct(), SKU_PREFIX + skuSuffix, "4900.00", true, stock);
+        return variantId(SKU_PREFIX + skuSuffix);
+    }
+
+    protected long variantWithoutStockRow(String skuSuffix) {
+        return jdbc.queryForObject("""
+                INSERT INTO product_variants (product_id, sku, attributes, price, active)
+                VALUES (?, ?, ?::jsonb, 4900.00, TRUE) RETURNING id
+                """, Long.class, testProduct(), SKU_PREFIX + skuSuffix, "{\"sku\":\"" + skuSuffix + "\"}");
+    }
+
+    private long testProduct() {
+        return jdbc.queryForList("SELECT id FROM products WHERE name = ?", Long.class, PRODUCT_NAME)
                 .stream()
                 .findFirst()
                 .orElseGet(() -> product("stapovi", PRODUCT_NAME, "Acme", true));
-        variant(product, SKU_PREFIX + skuSuffix, "4900.00", true, stock);
-        return variantId(SKU_PREFIX + skuSuffix);
     }
 
     protected int stockOf(long variantId) {
