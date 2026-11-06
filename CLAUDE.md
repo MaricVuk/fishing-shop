@@ -8,7 +8,7 @@ Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izv
 
 **Imena:** repo `fishing-shop`, Java paket `rs.fishingshop`, Maven artifactId `fishing-shop`.
 
-**Trenutna faza:** 0 (priprema). Ažuriraj ovu liniju kad krene nova faza.
+**Trenutna faza:** 1 (katalog i porudžbina). Ažuriraj ovu liniju kad krene nova faza.
 
 ## Stack
 
@@ -28,6 +28,7 @@ Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izv
 ## Kod
 
 - **Kod, komentari, nazivi tabela, kolona i API ruta: engleski.** UI tekstovi i README: srpski (latinica).
+- **Komentare ne piši** osim kad su tehnički neophodni (neočigledan razlog, zaobilazno rešenje, tvrdo ograničenje). Jasna imena umesto komentara.
 - Novac je `BigDecimal` / `NUMERIC`, nikad `double`.
 - Cena i naziv proizvoda se **kopiraju** u stavku porudžbine.
 - Validacija ulaza (`@Valid`) i jedinstven format grešaka.
