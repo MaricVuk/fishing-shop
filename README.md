@@ -54,7 +54,7 @@ fishing-shop/
 ├── backend/            Spring Boot aplikacija (paket rs.fishingshop)
 │   └── src/main/resources/db/migration/   Flyway migracije (V1, V2, ...)
 ├── frontend/           (Faza 1)
-├── docs/               odluke (DECISIONS.md), ADR, dnevnik učenja
+├── docs/               odluke (DECISIONS.md), ADR
 ├── .github/workflows/  CI
 ├── docker-compose.yml  Postgres za razvoj
 └── .env.example        razvojne vrednosti env varijabli

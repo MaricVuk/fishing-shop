@@ -75,5 +75,4 @@ Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izv
 - [ ] testovi prolaze (`mvn verify`, a za frontend i njegovi testovi)
 - [ ] README checklista faze je štiklirana
 - [ ] za svaku veću odluku postoji zapis u `docs/DECISIONS.md` ili ADR u `docs/adr/`
-- [ ] `docs/learning-log.md` ima unos za fazu
 - [ ] CLAUDE.md ima ažuriranu liniju "Trenutna faza"
