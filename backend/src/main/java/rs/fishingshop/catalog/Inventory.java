@@ -29,4 +29,11 @@ public class Inventory {
     public int getQuantity() {
         return quantity;
     }
+
+    public void decrease(int amount) {
+        if (amount <= 0 || amount > quantity) {
+            throw new IllegalArgumentException("Cannot take " + amount + " of " + quantity);
+        }
+        quantity -= amount;
+    }
 }

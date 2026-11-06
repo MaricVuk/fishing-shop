@@ -86,7 +86,6 @@ Pregled na kraju Faze 1. Nijedna stavka ne blokira Fazu 2.
 
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
-| Zaliha pri porudžbini (provera i atomsko skidanje) | sada se može poručiti više nego što ima na stanju | **Faza 2** |
 | Idempotentni ključ za porudžbinu | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | Faza 4 |
 | Ograničenje učestalosti na `POST /api/orders` | spam porudžbine | uz prijavu, Faza 3 |
 | Svetla tema i telefon nisu vizuelno provereni (Chrome ne dozvoljava prozor uži od oko 500 px) | izgled je deo portfolija | pre deploya, na pravom telefonu ili kroz DevTools |
@@ -106,7 +105,8 @@ Pregled na kraju Faze 1. Nijedna stavka ne blokira Fazu 2.
 | Actuator na posebnom portu i backend dostupan samo Next serveru | `rewrites` nisu bezbednosna granica | pre deploya |
 | Pun CSP sa nonce-om i pinovanje akcija po SHA uz Dependabot | dodatna odbrana | pre deploya |
 | `server.forward-headers-strategy` i `X-Forwarded-For` za ograničenje učestalosti | iza proxy-ja svi korisnici dolaze sa IP adrese Next servera | Faza 3 |
-| Test koji potvrđuje rollback porudžbine bez `@Transactional` na testu | postojeći testovi dokazuju samo da validacija ide pre upisa | Faza 2, uz skidanje zalihe |
+| Rezervacija zalihe u korpi (korpa koja "drži" artikal) | kupac može da vidi "na stanju" i dobije `422` pri porudžbini | uz prijavu, Faza 3 ili kasnije |
+| Atomski `UPDATE ... RETURNING` umesto `SELECT ... FOR UPDATE` | brže ako jedna varijanta postane usko grlo (ADR 0003) | kad merenje pokaže potrebu |
 | Uzastopni brojevi porudžbina otkrivaju obim prodaje | konkurent iz dve porudžbine računa koliko ih ima | Faza 3, javni nasumični token |
 
 ## Urađeno
@@ -119,3 +119,4 @@ Pregled na kraju Faze 1. Nijedna stavka ne blokira Fazu 2.
 - **1.5**: korpa u `localStorage`, `/cart`, `/checkout`, `/checkout/success`, broj komada u zaglavlju. Cela kupovina proverena u browseru.
 - **1.6, Faza 1 zatvorena**: ROADMAP checklista, status u README-u, ADR 0001 i 0002, pregled duga, `CLAUDE.md` na Fazu 2.
 - **Revizija Faze 1** (4 paralelna recenzenta: backend, bezbednost, frontend, testovi i dokumenta, svaki nalaz proveren u kodu ili stvarnim zahtevom): nije bilo P0. Ispravljeno: stranica greške nije ponovo učitavala podatke, `500` bez `ProblemDetail` formata, neograničen `page` i telo zahteva, kontrolni znakovi i razlomljeni brojevi u porudžbini, podrazumevana lozinka i Swagger u svim profilima, fokus i pristupačnost korpe i forme, kontrast, bezbednosna zaglavlja, slabi testovi i netačnosti u dokumentima. Odbačeno: izlazak iz `/api/*` kroz proxy (5 varijanti, sve 404 ili 400) i NUL u pretrazi (vraća 200). 53 backend i 110 frontend testova.
+- **2.1**: zaliha se proverava i skida pri porudžbini pod pesimističkim zaključavanjem, redovi u rastućem redosledu `variant_id` ([ADR 0003](adr/0003-pessimistic-locking-for-stock.md)). `422` sa `insufficientStockVariantIds`, `503` sa `Retry-After` kad čekanje na red istekne. Test sa 50 kupaca je prvo pao (50 porudžbina na 1 komad), pa tek onda rešenje. Pravi rollback test bez test transakcije. 62 backend testa.
