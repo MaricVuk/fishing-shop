@@ -41,4 +41,9 @@ class CatalogController {
     ProductDetail product(@PathVariable @Positive Long id) {
         return catalog.getProduct(id);
     }
+
+    @GetMapping("/variants")
+    List<VariantLine> variants(@RequestParam @Size(min = 1, max = 50) List<@Positive Long> ids) {
+        return catalog.listVariantLines(ids);
+    }
 }

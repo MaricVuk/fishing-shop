@@ -15,6 +15,10 @@ abstract class CatalogTestSupport extends PostgresIntegrationTest {
                 """, Long.class, categorySlug, name, brand, active);
     }
 
+    protected long variantId(String sku) {
+        return jdbc.queryForObject("SELECT id FROM product_variants WHERE sku = ?", Long.class, sku);
+    }
+
     protected void variant(long productId, String sku, String price, boolean active, int stock) {
         variantWithAttributes(productId, sku, "{\"sku\":\"" + sku + "\"}", price, active, stock);
     }

@@ -42,6 +42,10 @@ public class CatalogService {
         return ProductDetail.of(product, activeVariants);
     }
 
+    public List<VariantLine> listVariantLines(List<Long> ids) {
+        return variants.findLines(ids);
+    }
+
     private static String escapeLike(String value) {
         return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
