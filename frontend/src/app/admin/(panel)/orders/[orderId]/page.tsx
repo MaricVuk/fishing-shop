@@ -6,7 +6,7 @@ import { OrderStatusActions } from "@/components/admin/order-status-actions";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { accessTo } from "@/lib/admin-access";
 import { adminGet } from "@/lib/admin-api";
-import { describeChange } from "@/lib/admin-orders";
+import { describeChange, describeInvoice } from "@/lib/admin-orders";
 import { formatDateTime } from "@/lib/admin-stock";
 import type { AdminOrderDetail } from "@/lib/admin-types";
 import { formatPrice } from "@/lib/format";
@@ -21,6 +21,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[or
   if (!/^[1-9]\d{0,17}$/.test(orderId)) notFound();
   const order = await adminGet<AdminOrderDetail>(`/api/admin/orders/${orderId}`);
   if (!order) notFound();
+  const invoice = describeInvoice(order.id, order.invoice);
 
   return (
     <>
@@ -93,6 +94,22 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[or
               </div>
             </dl>
           </section>
+          {invoice && (
+            <section aria-labelledby="racun" className="rounded-xl border p-5">
+              <h2 id="racun" className="text-lg font-semibold">Račun</h2>
+              <p className="mt-3 font-medium tabular-nums">{invoice.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{invoice.text}</p>
+              {invoice.href && (
+                <a
+                  href={invoice.href}
+                  download
+                  className="mt-3 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Preuzmi PDF
+                </a>
+              )}
+            </section>
+          )}
           <OrderStatusActions orderId={order.id} allowed={order.allowedStatuses} />
         </div>
       </div>

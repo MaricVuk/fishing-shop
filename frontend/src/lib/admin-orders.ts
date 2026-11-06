@@ -1,4 +1,5 @@
-import type { AuditEntry, OrderStatus } from "@/lib/admin-types";
+import { formatDateTime } from "@/lib/admin-stock";
+import type { AuditEntry, InvoiceSummary, OrderStatus } from "@/lib/admin-types";
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -81,4 +82,27 @@ export function describeChange(entry: AuditEntry): string {
     parts.push(`Vraćeno na stanje: ${units} kom.`);
   }
   return parts.join(" ");
+}
+
+export type InvoiceView = { title: string; text: string; href: string | null };
+
+export function describeInvoice(orderId: number, invoice: InvoiceSummary): InvoiceView | null {
+  switch (invoice.status) {
+    case "ISSUED":
+      return {
+        title: invoice.number ?? "Račun",
+        text: invoice.issuedAt ? `Izdat ${formatDateTime(invoice.issuedAt)}` : "Izdat",
+        href: `/api/admin/orders/${orderId}/invoice`,
+      };
+    case "PENDING":
+      return { title: "Račun se pravi", text: "Pojaviće se ovde za nekoliko sekundi. Osveži stranicu.", href: null };
+    case "FAILED":
+      return {
+        title: "Račun nije napravljen",
+        text: "Svi pokušaji su propali. Javi administratoru.",
+        href: null,
+      };
+    case "NONE":
+      return null;
+  }
 }

@@ -80,8 +80,13 @@ export type AdminOrderDetail = {
     lineTotal: number;
   }[];
   allowedStatuses: OrderStatus[];
+  invoice: InvoiceSummary;
   history: AuditEntry[];
 };
+
+export type InvoiceStatus = "NONE" | "PENDING" | "ISSUED" | "FAILED";
+
+export type InvoiceSummary = { status: InvoiceStatus; number: string | null; issuedAt: string | null };
 
 export type AdminEmployee = {
   id: number;

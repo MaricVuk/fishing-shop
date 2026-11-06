@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ORDER_STATUSES,
   describeChange,
+  describeInvoice,
   ordersHref,
   parseOrderQuery,
   statusActionLabel,
@@ -69,5 +70,32 @@ describe("describeChange", () => {
     expect(describeChange({ ...entry, newValue: { status: "SHIPPED", reason: null } })).toBe(
       "Potvrđena → Poslata.",
     );
+  });
+});
+
+describe("describeInvoice", () => {
+  it("links an issued invoice to its PDF", () => {
+    expect(
+      describeInvoice(7, { status: "ISSUED", number: "RN-2026-000003", issuedAt: "2026-11-06T19:49:22Z" }),
+    ).toEqual({
+      title: "RN-2026-000003",
+      text: "Izdat 6. 11. 2026. 20:49",
+      href: "/api/admin/orders/7/invoice",
+    });
+  });
+
+  it("explains a pending and a failed invoice without a link", () => {
+    expect(describeInvoice(7, { status: "PENDING", number: null, issuedAt: null })).toEqual({
+      title: "Račun se pravi",
+      text: "Pojaviće se ovde za nekoliko sekundi. Osveži stranicu.",
+      href: null,
+    });
+    expect(describeInvoice(7, { status: "FAILED", number: null, issuedAt: null })?.title).toBe(
+      "Račun nije napravljen",
+    );
+  });
+
+  it("shows nothing before the order is confirmed", () => {
+    expect(describeInvoice(7, { status: "NONE", number: null, issuedAt: null })).toBeNull();
   });
 });
