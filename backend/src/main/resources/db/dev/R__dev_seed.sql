@@ -70,3 +70,10 @@ JOIN product_variants v ON v.sku = s.sku
 JOIN inventory i ON i.variant_id = v.id
 WHERE i.quantity > 0
   AND NOT EXISTS (SELECT 1 FROM stock_movements m WHERE m.variant_id = i.variant_id);
+
+INSERT INTO employees (email, full_name, password_hash, role)
+VALUES
+    ('vlasnik@ribolov.test', 'Vlasnik Radnje', '$2a$12$cVFfO6Ie2nUzwXIb6/G.5.RVMVFrvvHdeOjYXLZsw1KY84em/TpT6', 'OWNER'),
+    ('prodavac@ribolov.test', 'Petar Prodavac', '$2a$12$tZkWhvaWW/W6mYK6VE68JOoEoA6euvi/brFWF5N8DO1s7CtXhWMX2', 'SELLER'),
+    ('magacioner@ribolov.test', 'Marija Magacioner', '$2a$12$GkS5iCkUWYTG.S3ZLjxchuVxzzGQ64PusAm4hUNGasi1x9Yf72vRC', 'WAREHOUSE')
+ON CONFLICT DO NOTHING;

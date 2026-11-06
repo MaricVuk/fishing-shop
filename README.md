@@ -81,6 +81,16 @@ Shop je na http://localhost:3000, a dokumentacija API-ja (Swagger UI) na http://
 
 Profil `dev` je potreban za lokalni rad: daje razvojne vrednosti za bazu (iste kao u `docker-compose.yml`), učitava demo proizvode i uključuje Swagger UI. Bez njega backend traži `DB_URL`, `DB_USER` i `DB_PASSWORD` iz okruženja i ne izlaže Swagger, što je ponašanje za produkciju.
 
+Profil `dev` pravi i po jedan nalog zaposlenog za svaku ulogu. Ovi nalozi postoje samo u razvojnoj bazi:
+
+| Uloga | Email | Lozinka |
+|---|---|---|
+| Vlasnik | `vlasnik@ribolov.test` | `dev-vlasnik-lozinka` |
+| Prodavac | `prodavac@ribolov.test` | `dev-prodavac-lozinka` |
+| Magacioner | `magacioner@ribolov.test` | `dev-magacioner-lozinka` |
+
+Bez profila `dev` prvi vlasnik se pravi iz `SHOP_OWNER_EMAIL` i `SHOP_OWNER_PASSWORD` (najmanje 12 znakova), i to samo dok u bazi nema nijednog zaposlenog. Prijava radi preko sesije u bazi ([ADR 0004](docs/adr/0004-employee-login-with-server-sessions.md)).
+
 Fajl `.env` čita samo `docker compose`. Backend čita promenljive okruženja (npr. `set -a; source .env; set +a` pre pokretanja), a frontend čita `frontend/.env.local` (`cp frontend/.env.example frontend/.env.local`). Adresa backenda `BACKEND_URL` za `/api/*` proxy se ugrađuje pri build-u, pa se za produkciju zadaje pri `npm run build`.
 
 Testovi (zahtevaju Docker, koriste Testcontainers sa pravim PostgreSQL-om):

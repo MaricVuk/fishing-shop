@@ -46,4 +46,13 @@ class DevProfileTests {
         assertThat(variants).isGreaterThan(20);
         assertThat(inventoryRows).isEqualTo(variants);
     }
+
+    @Test
+    void devSeedHasOneAccountPerRoleWithHashedPasswords() {
+        List<String> roles = jdbc.queryForList("SELECT role FROM employees ORDER BY role", String.class);
+        List<String> hashes = jdbc.queryForList("SELECT password_hash FROM employees", String.class);
+
+        assertThat(roles).containsExactly("OWNER", "SELLER", "WAREHOUSE");
+        assertThat(hashes).allMatch(hash -> hash.startsWith("$2a$12$"));
+    }
 }
