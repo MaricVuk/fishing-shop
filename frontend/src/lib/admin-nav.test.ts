@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import { adminNavigation, canAccess, roleLabel } from "@/lib/admin-nav";
+
+const hrefs = (role: Parameters<typeof adminNavigation>[0]) =>
+  adminNavigation(role).map((item) => item.href);
+
+describe("adminNavigation", () => {
+  it("shows the owner every section", () => {
+    expect(hrefs("OWNER")).toEqual([
+      "/admin",
+      "/admin/orders",
+      "/admin/stock",
+      "/admin/employees",
+      "/admin/audit",
+    ]);
+  });
+
+  it("shows a seller only orders", () => {
+    expect(hrefs("SELLER")).toEqual(["/admin", "/admin/orders"]);
+  });
+
+  it("shows the warehouse only stock", () => {
+    expect(hrefs("WAREHOUSE")).toEqual(["/admin", "/admin/stock"]);
+  });
+});
+
+describe("canAccess", () => {
+  it("matches a section and its sub pages", () => {
+    expect(canAccess("SELLER", "/admin/orders/42")).toBe(true);
+    expect(canAccess("SELLER", "/admin/stock")).toBe(false);
+    expect(canAccess("WAREHOUSE", "/admin/employees")).toBe(false);
+    expect(canAccess("OWNER", "/admin/audit")).toBe(true);
+    expect(canAccess("WAREHOUSE", "/admin")).toBe(true);
+  });
+});
+
+describe("roleLabel", () => {
+  it("names the roles in Serbian", () => {
+    expect(roleLabel("OWNER")).toBe("Vlasnik");
+    expect(roleLabel("SELLER")).toBe("Prodavac");
+    expect(roleLabel("WAREHOUSE")).toBe("Magacioner");
+  });
+});
