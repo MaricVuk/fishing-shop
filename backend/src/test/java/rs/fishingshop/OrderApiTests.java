@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -170,7 +171,31 @@ class OrderApiTests extends CatalogTestSupport {
 
         placeOrder(customer, item(shortRod, 1))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[?(@.field == 'customer.email')].code").value("Email"));
+                .andExpect(jsonPath("$.errors[?(@.field == 'customer.email')].code", hasItem("Email")));
+    }
+
+    @Test
+    void rejectsAnEmailTheMailServerCouldNotUseBeforeTheOrderExists() throws Exception {
+        int before = orderCount();
+        for (String email : List.of("ana@ex_ample.com", "a@b@c.rs", "ana@x..rs")) {
+            String customer = """
+                    {"name":"Ana Anić","email":"%s","shippingAddress":"Bulevar 5, Novi Sad"}""".formatted(email);
+
+            placeOrder(customer, item(shortRod, 1))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[?(@.field == 'customer.email')]").isNotEmpty());
+        }
+        assertThat(orderCount()).isEqualTo(before);
+    }
+
+    @Test
+    void acceptsCommonRealEmailAddresses() throws Exception {
+        for (String email : List.of("ana.anic+shop@mail.example.rs", "marko_77@example.co.rs", "j-o@x.io")) {
+            String customer = """
+                    {"name":"Ana Anić","email":"%s","shippingAddress":"Bulevar 5, Novi Sad"}""".formatted(email);
+
+            placeOrder(customer, item(shortRod, 1)).andExpect(status().isCreated());
+        }
     }
 
     @Test
@@ -286,7 +311,7 @@ class OrderApiTests extends CatalogTestSupport {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.errors[?(@.field == 'customer.name')].code").value("NotBlank"))
-                .andExpect(jsonPath("$.errors[?(@.field == 'customer.email')].code").value("Email"))
+                .andExpect(jsonPath("$.errors[?(@.field == 'customer.email')].code", hasItem("Email")))
                 .andExpect(jsonPath("$.errors[?(@.field == 'customer.phone')].code").value("Pattern"))
                 .andExpect(jsonPath("$.errors[?(@.field == 'customer.shippingAddress')].code").value("NotBlank"));
 
