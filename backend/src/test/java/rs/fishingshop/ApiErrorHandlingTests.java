@@ -38,9 +38,9 @@ class ApiErrorHandlingTests extends PostgresIntegrationTest {
     }
 
     @Test
-    void unknownRoutesAreProblemDetails() throws Exception {
+    void unknownRoutesAreClosedToAnonymousCallersAsProblemDetails() throws Exception {
         mvc.perform(get("/api/does-not-exist"))
-                .andExpect(status().isNotFound())
+                .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 }

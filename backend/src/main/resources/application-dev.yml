@@ -12,3 +12,7 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+shop:
+  auth:
+    secure-cookies: false

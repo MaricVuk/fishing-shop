@@ -35,6 +35,11 @@ spring:
     problemdetails:
       enabled: true
 
+  session:
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+
 springdoc:
   api-docs:
     enabled: false
@@ -43,6 +48,19 @@ springdoc:
 
 server:
   port: 8080
+  forward-headers-strategy: native
+
+shop:
+  auth:
+    secure-cookies: true
+    session-max-age: 8h
+    max-failures-per-email: 5
+    max-failures-per-address: 50
+    failure-window: 15m
+  bootstrap:
+    owner-email: ${SHOP_OWNER_EMAIL:}
+    owner-password: ${SHOP_OWNER_PASSWORD:}
+    owner-name: ${SHOP_OWNER_NAME:}
 
 management:
   endpoints:

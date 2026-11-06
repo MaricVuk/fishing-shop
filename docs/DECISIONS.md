@@ -1,6 +1,6 @@
 # Odluke
 
-Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md)). Poslednje ažuriranje: 2026-11-06.
+Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md)). Poslednje ažuriranje: 2026-11-06.
 
 ## Odlučeno
 
@@ -57,6 +57,7 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Neočekivane greške | `500` u `ProblemDetail` formatu sa opštom porukom, detalji samo u logu | jedan format grešaka i bez curenja unutrašnjosti |
 | Bezbednosna zaglavlja frontenda | `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` i CSP samo sa direktivama bez skripti (`frame-ancestors`, `base-uri`, `object-src`, `form-action`), bez `X-Powered-By` | pun CSP traži nonce za Next.js skripte, pa je za kasnije |
 | Dev seed | Samo ubacuje podatke (`ON CONFLICT DO NOTHING`), a Flyway ignoriše nedostajuću repeatable migraciju | isključivanje `dev` profila ne sme da sruši start na istoj bazi |
+| Prijava zaposlenih | Sesija u Postgresu (Spring Session JDBC), `HttpOnly` kolačić, BCrypt, CSRF i na prijavi, sve što nije dozvoljeno je zabranjeno ([ADR 0004](adr/0004-employee-login-with-server-sessions.md)) | odjava i otkaz deluju odmah, nema tajnog ključa, desetak zaposlenih |
 
 ## Plan za sub-agente po fazama
 
@@ -73,7 +74,6 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 
 | Tema | Kad | Napomena |
 |---|---|---|
-| Autentikacija (JWT ili sesija) | Faza 3 | ADR |
 | Red poslova (RabbitMQ ili jednostavnije) | Faza 4 | prvo ga izazovi `boring-tech-advisor` agentom |
 | Gde se deploy-uje (Fly.io, Render, Railway, VPS) | pre prvog deploya | mora da ima javni link |
 | Konačan naziv shopa | pre deploya | trenutno radni naslov |
@@ -87,7 +87,7 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
 | Idempotentni ključ za porudžbinu | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | Faza 4 |
-| Ograničenje učestalosti na `POST /api/orders` | spam porudžbine | uz prijavu, Faza 3 |
+| Ograničenje učestalosti na `POST /api/orders` | spam porudžbine | 3.4 |
 | Svetla tema i telefon nisu vizuelno provereni (Chrome ne dozvoljava prozor uži od oko 500 px) | izgled je deo portfolija | pre deploya, na pravom telefonu ili kroz DevTools |
 | Slike proizvoda (`image_url` je prazan, kartice imaju rezervnu sliku) | izgled kataloga zavisi od fotografija | pre deploya |
 | Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | pre deploya |
@@ -102,9 +102,12 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 | Agent `schema-reviewer` nije bio dostupan, pregled `V1` je urađen ručno | drugo mišljenje | ako se plugin `backend-design` učita |
 | Ime vlasnika u `LICENSE` je GitHub nalog | javno je vidljivo | po želji |
 | Proxy `/api/*` koji čita adresu backenda u runtime-u (route handler umesto `rewrites`, samo `GET /api/variants` i `POST /api/orders`) | adresa se ugrađuje pri build-u, pa jedna slika ne radi u više okruženja | pre deploya |
+| Obavezan HTTPS (kolačić sesije sa `Secure`, preusmeravanje sa HTTP-a, HSTS) | bez njega se kolačić sesije zaposlenog šalje nešifrovano | pre deploya |
+| Dvofaktorska prijava (2FA, npr. TOTP aplikacija) bar za vlasnika | ukradena lozinka vlasnika daje pristup svemu | posle Faze 3, pre deploya |
 | Actuator na posebnom portu i backend dostupan samo Next serveru | `rewrites` nisu bezbednosna granica | pre deploya |
 | Pun CSP sa nonce-om i pinovanje akcija po SHA uz Dependabot | dodatna odbrana | pre deploya |
-| `server.forward-headers-strategy` i `X-Forwarded-For` za ograničenje učestalosti | iza proxy-ja svi korisnici dolaze sa IP adrese Next servera | Faza 3 |
+| `X-Forwarded-For` je pouzdan samo dok backend vidi samo Next server (`forward-headers-strategy: native` je uključen u 3.1) | inače posetilac može da lažira adresu i zaobiđe ograničenje po adresi | pre deploya |
+| Brojač neuspelih prijava je u memoriji | sa više instanci svaka broji za sebe, restart ga briše | ako bude više instanci |
 | Rezervacija zalihe u korpi (korpa koja "drži" artikal) | kupac može da vidi "na stanju" i dobije `422` pri porudžbini | uz prijavu, Faza 3 ili kasnije |
 | Atomski `UPDATE ... RETURNING` umesto `SELECT ... FOR UPDATE` | brže ako jedna varijanta postane usko grlo (ADR 0003) | kad merenje pokaže potrebu |
 | Količina u korpi može da bude veća od zalihe dok kupac ne pošalje porudžbinu (API vraća samo `inStock`, ne tačnu količinu) | kupac saznaje tek na checkout-u, ali dobija tačne stavke | uz rezervaciju ili "još samo N komada" |
@@ -123,3 +126,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 - **2.1**: zaliha se proverava i skida pri porudžbini pod pesimističkim zaključavanjem, redovi u rastućem redosledu `variant_id` ([ADR 0003](adr/0003-pessimistic-locking-for-stock.md)). `422` sa `insufficientStockVariantIds`, `503` sa `Retry-After` kad čekanje na red istekne. Test sa 50 kupaca je prvo pao (50 porudžbina na 1 komad), pa tek onda rešenje. Pravi rollback test bez test transakcije. 62 backend testa.
 - **2.2**: `V4` sa tabelom `stock_movements` (`IN`, `OUT`, `ADJUSTMENT`). Baza proverava predznak promene prema tipu, da samo `OUT` ima porudžbinu, da korekcija ima razlog i da stanje posle promene nije negativno. Postojeća zaliha dobija početni red (`Opening balance`), pa je zbir kretanja uvek jednak stanju. `StockService.receive` i `adjust` postoje samo kao servis, HTTP rute dolaze uz uloge u Fazi 3. Porudžbina se sad upisuje pre skidanja zalihe (kretanje pokazuje na nju), pa rollback test zaista poništava upisan red. Plugin `backend-design` nije instaliran, pa je `V4` pregledan ručno. 72 backend testa.
 - **2.3, Faza 2 zatvorena**: checkout prikazuje koje stavke nemaju dovoljno na stanju (`insufficientStockVariantIds`, sa nazivom i varijantom) i osvežava dostupnost, a za `503` kaže da je prodavnica zauzeta. Provereno u browseru na privremenoj bazi. README status. 72 backend i 116 frontend testova.
+- **3.1**: prijava zaposlenih ([ADR 0004](adr/0004-employee-login-with-server-sessions.md)). `V5` (`employees`, tabele Spring Session-a), `POST /api/auth/login` i `logout`, `GET /api/auth/me` i `csrf`, BCrypt 12, `429` posle 5 promašaja, sesija najviše 8 sati, prvi vlasnik iz env varijabli, tri dev naloga. Test pravog toka browsera na pravom HTTP serveru, jer MockMvc menja CSRF repozitorijum testnim. 92 backend testa.
