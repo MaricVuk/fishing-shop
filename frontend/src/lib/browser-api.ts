@@ -11,6 +11,7 @@ export type SubmitResult =
   | { kind: "invalid"; errors: FieldViolation[] }
   | { kind: "unavailable"; variantIds: number[] }
   | { kind: "insufficient"; variantIds: number[] }
+  | { kind: "alreadyPlaced" }
   | { kind: "busy" }
   | { kind: "failed" };
 
@@ -45,12 +46,12 @@ export async function fetchVariantLines(
   return (await response.json()) as VariantLine[];
 }
 
-export async function submitOrder(request: OrderRequest): Promise<SubmitResult> {
+export async function submitOrder(request: OrderRequest, idempotencyKey: string): Promise<SubmitResult> {
   let response: Response;
   try {
     response = await fetch("/api/orders", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(request),
     });
   } catch {
@@ -79,6 +80,7 @@ export async function submitOrder(request: OrderRequest): Promise<SubmitResult> 
     if (unavailable) return { kind: "unavailable", variantIds: unavailable };
     const insufficient = variantIds(body.insufficientStockVariantIds);
     if (insufficient) return { kind: "insufficient", variantIds: insufficient };
+    if (body.idempotencyKeyReused === true) return { kind: "alreadyPlaced" };
     return { kind: "invalid", errors: [] };
   }
 

@@ -23,6 +23,13 @@ public class OrderRejectedException extends ErrorResponseException {
                 ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, "Order total is too large"));
     }
 
+    static OrderRejectedException idempotencyKeyReused() {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNPROCESSABLE_CONTENT, "This Idempotency-Key was already used for a different order");
+        problem.setProperty("idempotencyKeyReused", true);
+        return new OrderRejectedException(problem);
+    }
+
     static OrderRejectedException quantityTooLarge(Long variantId, int maxQuantity) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNPROCESSABLE_CONTENT, "Quantity of one item cannot exceed " + maxQuantity);

@@ -110,7 +110,7 @@ Plan potvrđen 2026-11-07. Pravi deploy je odložen do dana kad se softver bude 
 - [x] 6.3 Poseban korisnik baze (`shop_migrator`, `shop_app`) i tajmauti baze
 - [x] 6.4 Actuator na posebnom portu, backend dostupan samo Next serveru, `X-Forwarded-For`
 - [x] 6.5 Pun CSP sa nonce-om
-- [ ] 6.6 Idempotentni ključ za porudžbinu
+- [x] 6.6 Idempotentni ključ za porudžbinu
 - [ ] 6.7 Nasumični javni token porudžbine
 - [ ] 6.8 Storno račun
 - [ ] 6.9 UI revizija (`impeccable`, `emil-design-eng`), vizuelnu potvrdu radi autor
