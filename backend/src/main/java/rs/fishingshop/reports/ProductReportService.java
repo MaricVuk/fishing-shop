@@ -67,15 +67,25 @@ public class ProductReportService {
     }
 
     @Transactional(readOnly = true)
-    public LowStockReport lowStock() {
+    public Dashboard.LowStockSummary lowStockSummary() {
         int threshold = properties.lowStockThreshold();
-        long total = jdbc.queryForObject("""
+        return new Dashboard.LowStockSummary(threshold, lowStockCount(threshold));
+    }
+
+    private long lowStockCount(int threshold) {
+        return jdbc.queryForObject("""
                 SELECT count(*)
                 FROM product_variants v
                 JOIN products p ON p.id = v.product_id
                 LEFT JOIN inventory i ON i.variant_id = v.id
                 WHERE v.active AND p.active AND coalesce(i.quantity, 0) <= ?
                 """, Long.class, threshold);
+    }
+
+    @Transactional(readOnly = true)
+    public LowStockReport lowStock() {
+        int threshold = properties.lowStockThreshold();
+        long total = lowStockCount(threshold);
         List<LowStockReport.Item> items = jdbc.query("""
                 SELECT v.id AS variant_id, p.id AS product_id, p.name, v.sku, v.attributes::text AS attributes,
                        coalesce(i.quantity, 0) AS quantity

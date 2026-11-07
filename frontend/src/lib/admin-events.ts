@@ -72,3 +72,9 @@ export function addNotice(notices: AdminNotice[], notice: AdminNotice): AdminNot
   if (notices.some((existing) => existing.key === notice.key)) return notices;
   return [notice, ...notices].slice(0, MAX_NOTICES);
 }
+
+export const REFRESH_DELAY_MS = 600;
+
+export function refreshesOn(pathname: string): boolean {
+  return pathname === "/admin";
+}

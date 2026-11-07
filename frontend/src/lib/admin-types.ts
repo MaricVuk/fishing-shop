@@ -159,3 +159,9 @@ export type LowStockItem = {
 };
 
 export type LowStockReport = { threshold: number; total: number; items: LowStockItem[] };
+
+export type Dashboard = {
+  pendingOrders?: { count: number; oldestSince?: string };
+  sales?: SalesReport;
+  lowStock?: { threshold: number; total: number };
+};

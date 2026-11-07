@@ -5,7 +5,9 @@ import {
   formatMinor,
   formatPrice,
   itemCountLabel,
+  orderCountLabel,
   productCountLabel,
+  variantCountLabel,
 } from "@/lib/format";
 
 describe("attributeLabel", () => {
@@ -77,5 +79,19 @@ describe("productCountLabel", () => {
     [101, "101 proizvod"],
   ])("labels %i as %s", (count, label) => {
     expect(productCountLabel(count)).toBe(label);
+  });
+});
+
+describe("orderCountLabel and variantCountLabel", () => {
+  it("use the right Serbian plural", () => {
+    expect(orderCountLabel(1)).toBe("1 porudžbina");
+    expect(orderCountLabel(2)).toBe("2 porudžbine");
+    expect(orderCountLabel(5)).toBe("5 porudžbina");
+    expect(orderCountLabel(11)).toBe("11 porudžbina");
+    expect(orderCountLabel(21)).toBe("21 porudžbina");
+    expect(orderCountLabel(0)).toBe("0 porudžbina");
+    expect(variantCountLabel(1)).toBe("1 varijanta");
+    expect(variantCountLabel(3)).toBe("3 varijante");
+    expect(variantCountLabel(12)).toBe("12 varijanti");
   });
 });

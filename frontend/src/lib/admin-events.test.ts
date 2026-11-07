@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_NOTICES, addNotice, describeAdminEvent, type AdminNotice } from "@/lib/admin-events";
+import { MAX_NOTICES, addNotice, describeAdminEvent, refreshesOn, type AdminNotice } from "@/lib/admin-events";
 
 describe("describeAdminEvent", () => {
   it("describes a new order with its total and item count", () => {
@@ -73,5 +73,15 @@ describe("addNotice", () => {
   it("ignores a notice it already shows, for example after a replay", () => {
     const once = addNotice([], notice("order-1"));
     expect(addNotice(once, notice("order-1"))).toBe(once);
+  });
+});
+
+describe("refreshesOn", () => {
+  it("refreshes the dashboard but never a page with forms or lists being worked on", () => {
+    expect(refreshesOn("/admin")).toBe(true);
+    expect(refreshesOn("/admin/orders")).toBe(false);
+    expect(refreshesOn("/admin/stock/3")).toBe(false);
+    expect(refreshesOn("/admin/reports")).toBe(false);
+    expect(refreshesOn("/admin/account")).toBe(false);
   });
 });

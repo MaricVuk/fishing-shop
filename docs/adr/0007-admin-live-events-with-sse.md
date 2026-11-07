@@ -47,6 +47,7 @@ Posledice za implementaciju: zaglavlje `Cache-Control: no-cache, no-transform` j
 - Konekcija bez `Last-Event-ID` počinje od trenutnog stanja (bez istorije); sa njim dobija najviše 50 propuštenih porudžbina i 50 rasprodatih varijanti.
 - Tok traje najviše 5 minuta, pa se browser ponovo poveže. Novi zahtev ponovo prolazi proveru sesije, pa isključen nalog ili promenjena uloga deluju najkasnije za 5 minuta. Najviše 200 otvorenih tokova (`503` preko toga).
 - Uloge: novu porudžbinu vide vlasnik i prodavac, poslednji komad vlasnik i magacioner.
+- Pad jedne veze ne sme da utiče na ostale: svaka greška pri upisu ili zatvaranju veze se obrađuje unutar te veze (zatvoren tab je uobičajen, a `completeWithError` iz tuđe niti ume da baci izuzetak), pa se slanje drugima nastavlja.
 
 ## Posledice
 
