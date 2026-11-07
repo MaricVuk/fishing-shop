@@ -113,15 +113,17 @@ logging:
       console: ecs
 
 management:
+  server:
+    port: 8081
+    address: 127.0.0.1
   endpoints:
     web:
       exposure:
         include: health,info,metrics
   endpoint:
     health:
-      show-details: when-authorized
-      show-components: when-authorized
-      roles: OWNER
+      show-details: always
+      show-components: always
   health:
     mail:
       enabled: false
