@@ -42,7 +42,7 @@ Bez indeksa i bez keša. Najgori slučaj, ceo period od 5 godina, kroz API traje
 ## Kako ponoviti
 
 ```bash
-docker run -d --name fishing-shop-perf -e POSTGRES_DB=shop_perf -e POSTGRES_USER=shop -e POSTGRES_PASSWORD=perf_only -p 5433:5432 postgres:16
+docker run -d --name fishing-shop-perf --shm-size=512m -e POSTGRES_DB=shop_perf -e POSTGRES_USER=shop -e POSTGRES_PASSWORD=perf_only -p 127.0.0.1:5433:5432 postgres:16
 ```
 
 ```bash
@@ -59,4 +59,4 @@ docker cp backend/perf/seed-orders.sql fishing-shop-perf:/tmp/ && docker exec fi
 docker cp backend/perf/explain-sales.sql fishing-shop-perf:/tmp/ && docker exec fishing-shop-perf psql -U shop -d shop_perf -v from=2021-11-01 -v to=2026-11-07 -v unit=month -f /tmp/explain-sales.sql
 ```
 
-Kontejner se briše sa `docker rm -f fishing-shop-perf`. Dev baza se ne dira.
+`--shm-size` je obavezan za paralelne izveštaje ([load test](load-test.md)), a port je samo na `127.0.0.1` zbog slabe lozinke. Kontejner se briše sa `docker rm -f fishing-shop-perf`, a njegov anonimni volumen sa `docker volume rm <ime iz docker inspect>`. Dev baza se ne dira.

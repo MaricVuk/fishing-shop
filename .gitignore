@@ -28,3 +28,6 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+# k6 raw results (numbers worth keeping go to docs/perf/load-test.md)
+backend/perf/k6/results/
