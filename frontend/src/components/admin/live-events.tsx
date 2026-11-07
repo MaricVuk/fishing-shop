@@ -1,23 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { ADMIN_EVENT_NAMES, type AdminNotice, addNotice, describeAdminEvent } from "@/lib/admin-events";
+import {
+  ADMIN_EVENT_NAMES,
+  type AdminNotice,
+  REFRESH_DELAY_MS,
+  addNotice,
+  describeAdminEvent,
+  refreshesOn,
+} from "@/lib/admin-events";
 
 const NOTICE_LIFETIME_MS = 20_000;
 
 export function LiveEvents() {
   const [notices, setNotices] = useState<AdminNotice[]>([]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     const source = new EventSource("/api/admin/events");
     let stopped = false;
+    let refresh: number | undefined;
 
     const show = (event: MessageEvent<string>) => {
       const notice = describeAdminEvent(event.type, event.data);
       if (!notice) return;
       setNotices((current) => addNotice(current, notice));
+      if (refreshesOn(pathnameRef.current)) {
+        window.clearTimeout(refresh);
+        refresh = window.setTimeout(() => router.refresh(), REFRESH_DELAY_MS);
+      }
       window.setTimeout(
         () => setNotices((current) => current.filter((existing) => existing.key !== notice.key)),
         NOTICE_LIFETIME_MS,
@@ -42,9 +62,10 @@ export function LiveEvents() {
 
     return () => {
       stopped = true;
+      window.clearTimeout(refresh);
       source.close();
     };
-  }, []);
+  }, [router]);
 
   const dismiss = (key: string) => setNotices((current) => current.filter((notice) => notice.key !== key));
 

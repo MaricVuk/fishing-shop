@@ -84,7 +84,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 ## Faza 5: Izveštaji, dashboard, uživo obaveštenja (u toku)
 
 - [x] Izveštaji: prodaja po periodu, najprodavaniji, niske zalihe (5.2, 5.3, [merenja](perf/sales-report.md))
-- [ ] Admin dashboard sa grafikonima
+- [x] Admin dashboard sa grafikonima (5.5, po ulozi, osvežava se na događaj iz 5.4)
 - [x] Uživo obaveštenja u adminu (nova porudžbina, poslednji komad) kroz Server-Sent Events ([ADR 0007](adr/0007-admin-live-events-with-sse.md)) (5.4)
 
 **Tehničke stvari na koje treba obratiti pažnju**

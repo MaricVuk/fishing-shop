@@ -52,3 +52,11 @@ export function productCountLabel(count: number): string {
   const singular = count % 10 === 1 && count % 100 !== 11;
   return `${count} ${singular ? "proizvod" : "proizvoda"}`;
 }
+
+export function orderCountLabel(count: number): string {
+  return `${count} ${pluralForm(count, "porudžbina", "porudžbine", "porudžbina")}`;
+}
+
+export function variantCountLabel(count: number): string {
+  return `${count} ${pluralForm(count, "varijanta", "varijante", "varijanti")}`;
+}
