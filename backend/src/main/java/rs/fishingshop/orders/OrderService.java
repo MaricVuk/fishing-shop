@@ -6,10 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.fishingshop.catalog.ProductVariant;
 import rs.fishingshop.catalog.ProductVariantRepository;
+import rs.fishingshop.events.OrderPlaced;
+import rs.fishingshop.events.VariantSoldOut;
 import rs.fishingshop.jobs.JobQueue;
 import rs.fishingshop.jobs.JobType;
 import rs.fishingshop.stock.StockService;
@@ -25,13 +28,16 @@ public class OrderService {
     private final ProductVariantRepository variants;
     private final StockService stock;
     private final JobQueue jobs;
+    private final ApplicationEventPublisher events;
 
     public OrderService(
-            CustomerOrderRepository orders, ProductVariantRepository variants, StockService stock, JobQueue jobs) {
+            CustomerOrderRepository orders, ProductVariantRepository variants, StockService stock, JobQueue jobs,
+            ApplicationEventPublisher events) {
         this.orders = orders;
         this.variants = variants;
         this.stock = stock;
         this.jobs = jobs;
+        this.events = events;
     }
 
     @Transactional
@@ -67,8 +73,10 @@ public class OrderService {
         }
 
         CustomerOrder saved = orders.save(order);
-        stock.takeForOrder(saved.getId(), quantities);
+        List<Long> soldOutMovements = stock.takeForOrder(saved.getId(), quantities);
         jobs.enqueueForOrder(JobType.ORDER_CONFIRMATION_EMAIL, saved.getId());
+        events.publishEvent(new OrderPlaced(saved.getId()));
+        soldOutMovements.forEach(movement -> events.publishEvent(new VariantSoldOut(movement)));
         return OrderResponse.from(saved);
     }
 

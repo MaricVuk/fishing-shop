@@ -37,7 +37,7 @@ public class StockService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void takeForOrder(Long orderId, Map<Long, Integer> quantities) {
+    public List<Long> takeForOrder(Long orderId, Map<Long, Integer> quantities) {
         limitLockWait();
 
         // Rows are locked one at a time in ascending id order: every transaction then waits in the
@@ -57,12 +57,17 @@ public class StockService {
         if (!insufficient.isEmpty()) {
             throw new InsufficientStockException(insufficient);
         }
+        List<Long> soldOutMovements = new ArrayList<>();
         locked.forEach((variantId, row) -> {
             int quantity = quantities.get(variantId);
             row.decrease(quantity);
-            movements.save(new StockMovement(
+            StockMovement movement = movements.save(new StockMovement(
                     variantId, StockMovementType.OUT, -quantity, row.getQuantity(), orderId, null));
+            if (row.getQuantity() == 0) {
+                soldOutMovements.add(movement.getId());
+            }
         });
+        return soldOutMovements;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

@@ -58,4 +58,8 @@ class StockMovement {
     StockMovementEntry toEntry() {
         return new StockMovementEntry(id, type, quantityChange, quantityAfter, orderId, reason, createdAt);
     }
+
+    Long getId() {
+        return id;
+    }
 }

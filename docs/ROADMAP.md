@@ -85,7 +85,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 
 - [x] Izveštaji: prodaja po periodu, najprodavaniji, niske zalihe (5.2, 5.3, [merenja](perf/sales-report.md))
 - [ ] Admin dashboard sa grafikonima
-- [ ] Uživo obaveštenja u adminu (nova porudžbina, poslednji komad) kroz Server-Sent Events ([ADR 0007](adr/0007-admin-live-events-with-sse.md))
+- [x] Uživo obaveštenja u adminu (nova porudžbina, poslednji komad) kroz Server-Sent Events ([ADR 0007](adr/0007-admin-live-events-with-sse.md)) (5.4)
 
 **Tehničke stvari na koje treba obratiti pažnju**
 - Agregacioni SQL upiti, indeksi, `EXPLAIN ANALYZE`

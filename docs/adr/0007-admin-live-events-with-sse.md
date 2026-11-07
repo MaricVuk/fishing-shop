@@ -25,6 +25,29 @@ Faza 5 traži da zaposleni u adminu vide događaje bez osvežavanja stranice: no
 
 Uslov pre koda: proba na produkcionom build-u frontenda (`next build && next start`) koja pokazuje da događaji kroz `rewrites` stižu bez baferovanja, i koliko dugo proxy drži otvorenu vezu. Ako proba ne uspe, rešenje je osvežavanje (upit na 15 s sa istim "posle id-ja" pravilom), a ovaj ADR se dopunjuje.
 
+## Proba (5.4)
+
+Proba je urađena pre koda, sa probnim endpointom koji šalje događaj na svake 2 s, kroz `next dev` i kroz produkcioni build (`next build && next start`):
+
+| Provera | Rezultat |
+|---|---|
+| Tok kroz `rewrites`, bez kompresije | događaji stižu odmah, i u dev i u produkciji |
+| Browser šalje `Accept-Encoding: gzip` | **Next kompresuje odgovor i zadržava ceo tok**: za 9 s nije stigao nijedan događaj |
+| Isto, uz `Cache-Control: no-cache, no-transform` | događaji ponovo stižu odmah; Next-ova kompresija preskače `no-transform` odgovore |
+| Tok bez ikakvih podataka 40 s | **Next proxy prekida vezu posle 30 s** (`proxyTimeout`) |
+| Događaj na svakih 20 s | veza drži, provereno 70 s |
+
+Posledice za implementaciju: zaglavlje `Cache-Control: no-cache, no-transform` je obavezno, a heartbeat ide na svakih 15 s (`shop.events.heartbeat`). Pravi endpoint je zatim proveren istim putem: veza je kroz produkcioni Next trajala duže od 30 s uz heartbeat, a događaj za porudžbinu je stigao u istoj sekundi.
+
+## Implementacija (5.4)
+
+- Domenski događaji `OrderPlaced` i `VariantSoldOut` objavljuju se u transakciji porudžbine (prvo porudžbina, pa rasprodate varijante), a `AdminEventBroadcaster` ih šalje tek posle commit-a.
+- Sadržaj događaja se čita iz baze (`AdminEventFeed`), isti upit služi i za nadoknadu.
+- Id događaja je kursor `{poslednja porudžbina}-{poslednje kretanje zalihe}`; šalje se i uz heartbeat, pa browser uvek zna dokle je stigao, i kad su događaji za druge uloge preskočeni.
+- Konekcija bez `Last-Event-ID` počinje od trenutnog stanja (bez istorije); sa njim dobija najviše 50 propuštenih porudžbina i 50 rasprodatih varijanti.
+- Tok traje najviše 5 minuta, pa se browser ponovo poveže. Novi zahtev ponovo prolazi proveru sesije, pa isključen nalog ili promenjena uloga deluju najkasnije za 5 minuta. Najviše 200 otvorenih tokova (`503` preko toga).
+- Uloge: novu porudžbinu vide vlasnik i prodavac, poslednji komad vlasnik i magacioner.
+
 ## Posledice
 
 Dobro:
@@ -36,6 +59,7 @@ Dobro:
 Loše:
 
 - Svako ponovno povezivanje je nov zahtev koji osvežava sesiju, pa otvoren tab ne ističe posle 30 minuta neaktivnosti, nego tek posle 8 sati (najduže trajanje sesije).
+- Nadoknada ide po id-ju, a ne po vremenu commit-a: porudžbina sa manjim id-jem koja se commit-uje dok je veza prekinuta, a posle one sa većim, neće stići kao obaveštenje. Obaveštenje je pomoć, a lista porudžbina je izvor istine.
 - Posle odjave ili isteka sesije `EventSource` sam ponavlja zahteve i dobija `401`, pa frontend mora da proveri `/api/auth/me` i da zatvori vezu.
 - Svaki otvoren tab drži jedan asinhroni zahtev na serveru. Na ovom obimu to nije bitno.
 - Sa više instanci backenda događaj nastaje samo na instanci koja je primila porudžbinu. Tada se dodaje `pg_notify` u transakciji i jedna `LISTEN` veza po instanci, a replay ostaje isti.
