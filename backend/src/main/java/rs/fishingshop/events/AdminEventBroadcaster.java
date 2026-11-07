@@ -5,8 +5,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -29,8 +31,16 @@ class AdminEventBroadcaster {
     private final AdminEventFeed feed;
     private final List<Subscriber> subscribers = new CopyOnWriteArrayList<>();
 
+    private final Supplier<SseEmitter> emitters;
+
+    @Autowired
     AdminEventBroadcaster(AdminEventFeed feed) {
+        this(feed, () -> new SseEmitter(STREAM_LIFETIME.toMillis()));
+    }
+
+    AdminEventBroadcaster(AdminEventFeed feed, Supplier<SseEmitter> emitters) {
         this.feed = feed;
+        this.emitters = emitters;
     }
 
     SseEmitter subscribe(EmployeeRole role, String lastEventId) {
@@ -38,7 +48,7 @@ class AdminEventBroadcaster {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Too many open event streams");
         }
         EventCursor resumeFrom = EventCursor.parse(lastEventId);
-        Subscriber subscriber = new Subscriber(new SseEmitter(STREAM_LIFETIME.toMillis()), role,
+        Subscriber subscriber = new Subscriber(emitters.get(), role,
                 resumeFrom != null ? resumeFrom : feed.latest());
         SseEmitter emitter = subscriber.emitter;
         emitter.onCompletion(() -> subscribers.remove(subscriber));
@@ -106,13 +116,20 @@ class AdminEventBroadcaster {
             send(SseEmitter.event().id(cursor.id()).comment(text));
         }
 
+        // One closed browser must never stop the event from reaching the others: this handles every failure
+        // of this connection itself, including the one Tomcat throws when the request is completed from a
+        // thread that is not its own after the client has gone.
         private void send(SseEmitter.SseEventBuilder event) {
             try {
                 emitter.send(event);
-            } catch (IOException | IllegalStateException closed) {
+            } catch (IOException | RuntimeException closed) {
                 log.debug("Event stream closed: {}", closed.getMessage());
                 subscribers.remove(this);
-                emitter.completeWithError(closed);
+                try {
+                    emitter.completeWithError(closed);
+                } catch (RuntimeException alreadyClosed) {
+                    log.debug("Event stream was already closed: {}", alreadyClosed.getMessage());
+                }
             }
         }
     }
