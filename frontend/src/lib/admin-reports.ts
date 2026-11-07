@@ -14,6 +14,8 @@ const GRANULARITY_LABELS: Record<ReportGranularity, string> = {
   MONTH: "Po mesecima",
 };
 
+export const BEST_SELLERS_LIMIT = 10;
+
 const MONTHS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const SHOP_DAY = new Intl.DateTimeFormat("en-CA", {
@@ -59,6 +61,17 @@ export function salesApiPath(query: ReportQuery): string {
   if (query.from) params.set("from", query.from);
   if (query.to) params.set("to", query.to);
   return `/api/admin/reports/sales?${params}`;
+}
+
+export function bestSellersApiPath(query: ReportQuery): string {
+  const params = new URLSearchParams({ limit: String(BEST_SELLERS_LIMIT) });
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  return `/api/admin/reports/best-sellers?${params}`;
+}
+
+export function stockLevelLabel(quantity: number): string {
+  return quantity === 0 ? "Nema na stanju" : `${formatCount(quantity)} kom.`;
 }
 
 export function reportsHref(query: ReportQuery): string {

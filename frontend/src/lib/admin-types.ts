@@ -134,3 +134,28 @@ export type SalesReport = {
   totals: { revenue: string; orders: number; newRevenue: string; newOrders: number };
   buckets: SalesBucket[];
 };
+
+export type BestSeller = {
+  variantId: number;
+  productId: number;
+  productName: string;
+  sku: string;
+  attributes: Record<string, string>;
+  active: boolean;
+  quantity: number;
+  revenue: string;
+  orders: number;
+};
+
+export type BestSellerReport = { from: string; to: string; items: BestSeller[] };
+
+export type LowStockItem = {
+  variantId: number;
+  productId: number;
+  productName: string;
+  sku: string;
+  attributes: Record<string, string>;
+  quantity: number;
+};
+
+export type LowStockReport = { threshold: number; total: number; items: LowStockItem[] };

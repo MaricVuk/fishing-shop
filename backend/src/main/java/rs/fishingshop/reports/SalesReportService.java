@@ -23,17 +23,14 @@ public class SalesReportService {
     // Day boundaries are local to the shop (Europe/Belgrade): a DST day is 23 or 25 hours long, and an
     // order at 00:30 local time belongs to that day even though it is the previous day in UTC.
     @Transactional(readOnly = true)
-    public SalesReport sales(LocalDate from, LocalDate to, ReportGranularity granularity) {
-        if (from.isAfter(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' must not be after 'to'");
-        }
+    public SalesReport sales(ReportPeriod period, ReportGranularity granularity) {
+        LocalDate from = period.from();
+        LocalDate to = period.to();
         if (granularity.bucketCount(from, to) > MAX_BUCKETS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The report has more than " + MAX_BUCKETS + " points, choose a coarser granularity");
         }
-        // The planner overestimates the grouped rows by orders of magnitude, so JIT compilation starts and
-        // costs more than it saves: about 650 ms instead of 480 ms for 5 years of orders (docs/perf).
-        jdbc.execute("SET LOCAL jit = off");
+        ReportSession.tune(jdbc);
         String unit = granularity.sqlUnit();
         List<SalesReport.Bucket> buckets = jdbc.query("""
                 WITH sales AS (

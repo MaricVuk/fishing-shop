@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bestSellersApiPath,
   bucketLabel,
   bucketTitle,
   chartValue,
@@ -10,6 +11,7 @@ import {
   reportsHref,
   salesApiPath,
   shopToday,
+  stockLevelLabel,
 } from "@/lib/admin-reports";
 
 describe("parseReportQuery", () => {
@@ -102,5 +104,24 @@ describe("formatCount", () => {
   it("groups thousands the Serbian way", () => {
     expect(formatCount(212400)).toBe("212.400");
     expect(formatCount(285)).toBe("285");
+  });
+});
+
+describe("bestSellersApiPath", () => {
+  it("asks for the top ten in the same period as the sales report", () => {
+    expect(bestSellersApiPath({ from: "2026-10-01", to: "2026-11-07", granularity: "WEEK" })).toBe(
+      "/api/admin/reports/best-sellers?limit=10&from=2026-10-01&to=2026-11-07",
+    );
+    expect(bestSellersApiPath({ from: null, to: null, granularity: "DAY" })).toBe(
+      "/api/admin/reports/best-sellers?limit=10",
+    );
+  });
+});
+
+describe("stockLevelLabel", () => {
+  it("says when nothing is left", () => {
+    expect(stockLevelLabel(0)).toBe("Nema na stanju");
+    expect(stockLevelLabel(3)).toBe("3 kom.");
+    expect(stockLevelLabel(1500)).toBe("1.500 kom.");
   });
 });
