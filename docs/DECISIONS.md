@@ -1,6 +1,6 @@
 # Odluke
 
-Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [0005 audit log](adr/0005-append-only-audit-log.md), [0006 red poslova u Postgresu](adr/0006-job-queue-in-postgres.md), [0007 uživo obaveštenja kroz SSE](adr/0007-admin-live-events-with-sse.md)). Poslednje ažuriranje: 2026-11-07 (zatvaranje Faze 5).
+Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [0005 audit log](adr/0005-append-only-audit-log.md), [0006 red poslova u Postgresu](adr/0006-job-queue-in-postgres.md), [0007 uživo obaveštenja kroz SSE](adr/0007-admin-live-events-with-sse.md), [0008 deploy odložen](adr/0008-deploy-postponed.md)). Poslednje ažuriranje: 2026-11-07 (6.0, odluke Faze 6).
 
 ## Odlučeno
 
@@ -111,6 +111,10 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Deljena memorija Postgresa | `shm_size: 256mb` za Postgres u `docker-compose.yml`; pri deployu isto (ili `max_parallel_workers_per_gather = 0`) | sa podrazumevanih 64 MB pet istovremenih velikih izveštaja je davalo `500` ("could not resize shared memory segment"); jedan korisnik to ne vidi |
 | Scheduler sa 2 niti | `spring.task.scheduling.pool.size: 2` | podrazumevano je 1 nit, pa je heartbeat obaveštenja čekao job worker (SMTP tajmaut 30 s), a Next prekida tihu vezu posle 30 s |
 | Prvi period izveštaja | Nedelja ili mesec koji počinje pre `from` vraća se sa početkom `from` (samo ti dani su uračunati); brzi izbor "26 nedelja" počinje od ponedeljka | delimična prva nedelja je izgledala kao slaba cela nedelja |
+| Pravi deploy (Faza 6) | Odložen do dana kad se softver bude prodavao. Faza 6 priprema sistem (Docker, uloge u bazi, CSP, test cele kupovine), ne pušta ga u rad ([ADR 0008](adr/0008-deploy-postponed.md)) | projekat je demo za portfolio; hosting, domen i mejl provajder su trošak i nalozi van repoa. Presuda `boring-tech-advisor` (VPS, kontejner baza, nadzor bez Prometheusa) i spike lista su sačuvani u ADR-u |
+| Javni token porudžbine (Faza 6) | Kupac vidi nasumični token, interni broj ostaje samo u adminu | uzastopni brojevi otkrivaju obim prodaje |
+| 2FA, HTTPS, HSTS i `__Host-` kolačići | Odloženo uz deploy | traže domen i pravo okruženje; dokazani na lokalnoj mašini ne bi značili ništa |
+| UI revizija (Faza 6, 6.9) | Prolaz skillovima `impeccable` i `emil-design-eng`, ispravke po površinama (shop, admin) u tankim PR-ovima, pre end-to-end testa | e2e test treba da zaključa već revidiran UI; vizuelnu potvrdu radi autor jer Chrome ne vidi WSL portove. Pre prvog pokretanja se čita šta `impeccable` instalira (binarni fajl, hook), vidi red "Dizajn smernice" |
 
 ## Plan za sub-agente po fazama
 
@@ -122,72 +126,73 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | 3 | `security-reviewer` |
 | 4 | `incident-thinker` pre puštanja workera, `boring-tech-advisor` za pitanje RabbitMQ naspram reda u Postgresu |
 | 5 | `boring-tech-advisor` za keš, uživo obaveštenja i izveštaje (urađeno u 5.0) |
-| Pred deploy | `claude-security` sken, jednom (skup po tokenima) |
+| 6 | `boring-tech-advisor` za platformu, bazu i nadzor (urađeno u 6.0) |
+| Pre prvog pravog deploya | `claude-security` sken, jednom (skup po tokenima) |
 
 ## Odlučujemo kasnije
 
 | Tema | Kad | Napomena |
 |---|---|---|
-| Gde se deploy-uje (Fly.io, Render, Railway, VPS) | pre prvog deploya | mora da ima javni link |
-| Konačan naziv shopa | pre deploya | trenutno radni naslov |
+| Gde se deploy-uje (Fly.io, Render, Railway, VPS) | kad se prodaje softver | odloženo, vidi [ADR 0008](adr/0008-deploy-postponed.md) |
+| Konačan naziv shopa | pre prvog pravog deploya (ADR 0008) | trenutno radni naslov |
 | Plaćanje karticom | verovatno van opsega | portfolio ne mora da prima pravi novac |
 | Više jezika (i18n) | samo ako zatreba | |
 
 ## Dug i otvorene stvari
 
-Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3, 4 i 5. Nijedna stavka ne blokira zatvaranje Faze 5; stavke sa rokom "Faza 6" i "pre deploya" su posao Faze 6 (priprema za deploy).
+Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3, 4 i 5, a rokovi pregledani u 6.0. Stavke sa rokom "Faza 6 (6.x)" su posao Faze 6; stavke sa rokom "pre prvog pravog deploya" čekaju dan kad se softver bude prodavao ([ADR 0008](adr/0008-deploy-postponed.md)).
 
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
-| Storno račun kad se potvrđena porudžbina otkaže | sada račun ostaje, a porudžbina je otkazana; isto važi za otkazivanje u trenutku dok posao pravi račun (obrađivač namerno ne zaključava porudžbinu, da admin ne bi čekao na SMTP) | Faza 6, pre deploya |
+| Storno račun kad se potvrđena porudžbina otkaže | sada račun ostaje, a porudžbina je otkazana; isto važi za otkazivanje u trenutku dok posao pravi račun (obrađivač namerno ne zaključava porudžbinu, da admin ne bi čekao na SMTP) | Faza 6 (6.8) |
 | Fiskalizacija (ESIR) | prodaja fizičkim licima u Srbiji traži fiskalni račun; ovaj PDF to nije | van opsega portfolija |
 | Mejl sa ne-ASCII znakovima (`ćevap@example.rs`, `ana@ćevap.rs`) prolazi API i `InternetAddress`, ali ga SMTP server bez `SMTPUTF8` može odbiti | takav posao se ponavlja kao privremena greška pa posle oko dan završi u `DEAD` | kad se izabere mejl provajder |
-| Uzbuna na metrike reda (`shop.jobs{status=DEAD}` > 0, `shop.jobs.worker.last.poll` duže od nekoliko minuta, `shop.jobs.oldest.overdue` duže od 10 min) | metrike postoje od 5.1, ali ih niko ne prikuplja dok nema deploya | uz izbor deploya i nadzora (tada i Prometheus format) |
+| Uzbuna na metrike reda (`shop.jobs{status=DEAD}` > 0, `shop.jobs.worker.last.poll` duže od nekoliko minuta, `shop.jobs.oldest.overdue` duže od 10 min) | metrike postoje od 5.1, ali ih niko ne prikuplja dok nema deploya | pre prvog pravog deploya (ADR 0008), uz nadzor i Prometheus format |
 | Brisanje starih `DONE` poslova (npr. starijih od 90 dana) | tabela samo raste, oko 100k redova godišnje pri sadašnjem obimu | kad zatreba |
 | Ponovljen mejl potvrde koristi trenutno stanje porudžbine | posle više sati ponavljanja kupac otkazane porudžbine dobije "primili smo" | nizak prioritet |
-| JDBC `socketTimeout` i tajmaut transakcije workera; transakcioni pgbouncer ili `idle_in_transaction_session_timeout` bi oslobodili zaključavanje usred slanja | bez toga zaglavljena veza zaustavlja worker; uz takav proxy dva workera mogu da pošalju isti mejl | pre deploya, uz izbor baze |
-| Idempotentni ključ za porudžbinu (`Idempotency-Key`, isti odgovor za ponovljen zahtev) | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | pomereno iz Faze 4: poseban mali PR, pre deploya |
+| JDBC `socketTimeout` i tajmaut transakcije workera; transakcioni pgbouncer ili `idle_in_transaction_session_timeout` bi oslobodili zaključavanje usred slanja | bez toga zaglavljena veza zaustavlja worker; uz takav proxy dva workera mogu da pošalju isti mejl | Faza 6 (6.3) |
+| Idempotentni ključ za porudžbinu (`Idempotency-Key`, isti odgovor za ponovljen zahtev) | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | Faza 6 (6.6) |
 | Hikari pool je 10 (podrazumevano) i usko grlo pod 3.000 zahteva/s u katalogu (23 do 32 niti čeka), uz odziv od 35 ms | nije potrebno za sadašnji obim; podešavanje `maximum-pool-size` je prvo što se menja ako zatreba | kad merenje na pravom deployu pokaže potrebu |
-| Vizuelna provera dashboard-a (5.5): kartice po ulozi, mali grafikon, osvežavanje kad stigne obaveštenje (`router.refresh`) | HTML i API su provereni kroz Next za sve tri uloge; osvežavanje u browseru nije viđeno | Faza 6, uz vizuelnu proveru svetle teme i telefona (autor je proveru 5.3 do 5.5 svesno odložio) |
-| Vizuelna provera obaveštenja (5.4): izgled u uglu, tamna tema, uzak ekran, čitač ekrana | HTML i tok su provereni kroz Next, obaveštenje u browseru nije viđeno | Faza 6, uz vizuelnu proveru svetle teme i telefona |
-| Metrike reda računaju isti `GROUP BY` po jednom za svako stanje (4 upita po čitanju metrika) | jeftino sa indeksom `(status, id DESC)`, ali raste sa tabelom; nalaz pregleda koda 5.7, svesno nije menjano | Faza 6, uz Prometheus i izbor nadzora |
+| Vizuelna provera dashboard-a (5.5): kartice po ulozi, mali grafikon, osvežavanje kad stigne obaveštenje (`router.refresh`) | HTML i API su provereni kroz Next za sve tri uloge; osvežavanje u browseru nije viđeno | Faza 6 (6.9, UI revizija); vizuelnu potvrdu radi autor |
+| Vizuelna provera obaveštenja (5.4): izgled u uglu, tamna tema, uzak ekran, čitač ekrana | HTML i tok su provereni kroz Next, obaveštenje u browseru nije viđeno | Faza 6 (6.9, UI revizija); vizuelnu potvrdu radi autor |
+| Metrike reda računaju isti `GROUP BY` po jednom za svako stanje (4 upita po čitanju metrika) | jeftino sa indeksom `(status, id DESC)`, ali raste sa tabelom; nalaz pregleda koda 5.7, svesno nije menjano | pre prvog pravog deploya (ADR 0008), uz Prometheus |
 | Jedna nit za slanje obaveštenja: zaglavljena veza usporava ostale dok upis ne istekne | obaveštenje kasni, ali porudžbina i poslovi ne čekaju (5.7) | ako se pokaže u radu |
 | Nadoknada obaveštenja posle prekida ide po id-ju | porudžbina sa manjim id-jem koja se commit-uje dok je veza prekinuta ne stiže kao obaveštenje (lista porudžbina je izvor istine) | ako zatreba |
 | SSE sa više instanci backenda (`pg_notify` i `LISTEN` veza po instanci) | sada događaj vidi samo instanca koja je primila porudžbinu | ako bude više instanci |
-| Vizuelna provera 5.3: tabele najprodavanijih i niskih zaliha na stranici Izveštaji, za vlasnika i magacionera (HTML i API su provereni kroz Next) | izgled tabela i oznaka "Nema na stanju" nije viđen u browseru | Faza 6, uz vizuelnu proveru svetle teme i telefona |
-| Svetla tema i telefon nisu vizuelno provereni (Chrome ne dozvoljava prozor uži od oko 500 px) | izgled je deo portfolija | pre deploya, na pravom telefonu ili kroz DevTools |
-| Slike proizvoda (`image_url` je prazan, kartice imaju rezervnu sliku) | izgled kataloga zavisi od fotografija | pre deploya |
-| Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | pre deploya |
-| Dockerfile za backend i frontend, ceo sistem jednom komandom | ROADMAP to obećava | pre deploya |
-| End-to-end test cele kupovine (npr. Playwright) | ručna provera nije regresioni test | pre deploya |
-| Dependabot (`.github/dependabot.yml`). `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa, bez visokih | zavisnosti zastarevaju | Faza 6, pre deploya (uz pinovanje akcija po SHA) |
+| Vizuelna provera 5.3: tabele najprodavanijih i niskih zaliha na stranici Izveštaji, za vlasnika i magacionera (HTML i API su provereni kroz Next) | izgled tabela i oznaka "Nema na stanju" nije viđen u browseru | Faza 6 (6.9, UI revizija); vizuelnu potvrdu radi autor |
+| Svetla tema i telefon nisu vizuelno provereni (Chrome ne dozvoljava prozor uži od oko 500 px) | izgled je deo portfolija | Faza 6 (6.9, UI revizija); vizuelnu potvrdu radi autor, na pravom telefonu ili kroz DevTools |
+| Slike proizvoda (`image_url` je prazan, kartice imaju rezervnu sliku) | izgled kataloga zavisi od fotografija | sadržaj koji dodaje autor; ne blokira Faze 6 |
+| Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | Faza 6 (6.2) |
+| Dockerfile za backend i frontend, ceo sistem jednom komandom | ROADMAP to obećava | Faza 6 (6.2) |
+| End-to-end test cele kupovine (npr. Playwright) | ručna provera nije regresioni test | Faza 6 (6.10) |
+| Dependabot (`.github/dependabot.yml`). `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa, bez visokih | zavisnosti zastarevaju | Faza 6 (6.1, uz pinovanje akcija po SHA) |
 | CI koristi `mvn`, lokalno `./mvnw`. `ubuntu-latest` prelazi na Ubuntu 26 | ista verzija Mavena i stabilan runner | kad bude zgodno |
 | Indeks za pretragu po nazivu (`pg_trgm`) | `LIKE '%x%'` ne koristi običan indeks, pa je sporo na velikom katalogu | kad katalog naraste |
 | Jedinstveno ime kategorije po roditelju, SKU bez razlike velikih i malih slova | otvoreno iz pregleda šeme | kad krenu potkategorije |
 | Greške validacije upita (`/api/products?size=0`) imaju opštu poruku bez detalja po polju | tela porudžbine već imaju listu po polju | nizak prioritet |
 | Agent `schema-reviewer` nije bio dostupan, pregled `V1` je urađen ručno | drugo mišljenje | ako se plugin `backend-design` učita |
 | Ime vlasnika u `LICENSE` je GitHub nalog | javno je vidljivo | po želji |
-| Proxy `/api/*` koji čita adresu backenda u runtime-u (route handler umesto `rewrites`, samo `GET /api/variants` i `POST /api/orders`) | adresa se ugrađuje pri build-u, pa jedna slika ne radi u više okruženja | pre deploya |
-| Poseban korisnik baze za aplikaciju: bez superkorisničkih prava, bez `ALTER`/`TRUNCATE`, samo `SELECT` i `INSERT` na `audit_log`; Flyway sa drugim nalogom | sada je `shop` superkorisnik (zvanična slika), pa može da isključi trigger audit loga, zaobiđe ga sa `session_replication_role`, pa i da izvrši komande na serveru baze | pre deploya |
-| Ponovni unos lozinke pri pravljenju vlasnika, promeni uloge u vlasnika i postavljanju tuđe lozinke | ukradena vlasnikova sesija može da napravi nalog koji nadživi sesiju (recenzija 3.6) | uz 2FA |
-| `__Host-` prefiks kolačića (`__Host-SESSION`, `__Host-XSRF-TOKEN`) | podsajt koji kontroliše neko drugi može da podmetne CSRF kolačić; važi samo ako produkcioni domen ima takve podsajtove | pre deploya |
-| Vlasnik može da postavi lozinku drugom vlasniku i da radi kao on | po dizajnu, ali "ko je šta uradio" slabi; vlasnik koji je kompromitovan može da skine ostale vlasnike | uz 2FA; razmotriti obavezu promene lozinke pri sledećoj prijavi |
+| Proxy `/api/*` koji čita adresu backenda u runtime-u (route handler umesto `rewrites`, samo `GET /api/variants` i `POST /api/orders`) | adresa se ugrađuje pri build-u, pa jedna slika ne radi u više okruženja | Faza 6 (6.2) |
+| Poseban korisnik baze za aplikaciju: bez superkorisničkih prava, bez `ALTER`/`TRUNCATE`, samo `SELECT` i `INSERT` na `audit_log`; Flyway sa drugim nalogom | sada je `shop` superkorisnik (zvanična slika), pa može da isključi trigger audit loga, zaobiđe ga sa `session_replication_role`, pa i da izvrši komande na serveru baze | Faza 6 (6.3) |
+| Ponovni unos lozinke pri pravljenju vlasnika, promeni uloge u vlasnika i postavljanju tuđe lozinke | ukradena vlasnikova sesija može da napravi nalog koji nadživi sesiju (recenzija 3.6) | pre prvog pravog deploya (ADR 0008), uz 2FA |
+| `__Host-` prefiks kolačića (`__Host-SESSION`, `__Host-XSRF-TOKEN`) | podsajt koji kontroliše neko drugi može da podmetne CSRF kolačić; važi samo ako produkcioni domen ima takve podsajtove | pre prvog pravog deploya (ADR 0008) |
+| Vlasnik može da postavi lozinku drugom vlasniku i da radi kao on | po dizajnu, ali "ko je šta uradio" slabi; vlasnik koji je kompromitovan može da skine ostale vlasnike | pre prvog pravog deploya (ADR 0008), uz 2FA; razmotriti obavezu promene lozinke pri sledećoj prijavi |
 | Prijave, odjave i neuspešni pokušaji nisu u audit logu (samo izmene podataka); prvi vlasnik iz env varijabli je samo u logu aplikacije | audit odgovara na "ko je šta promenio", a ne na "ko se prijavio" | ako zatreba |
 | `next` putanja se gubi kad sesija istekne (kolačić ostaje u browseru, pa `proxy.ts` ne dodaje `next`) | posle istekle sesije kraj prijave se otvara `/admin`, a ne ista stranica | nizak prioritet |
-| Provera `SELECT quantity <> zbir kretanja` nije zakazana, a baza ne brani zbir | ručna izmena `inventory` tiho kvari pravilo "stanje je zbir istorije" | pre deploya (ili kao test/poslednja provera) |
+| Provera `SELECT quantity <> zbir kretanja` nije zakazana, a baza ne brani zbir | ručna izmena `inventory` tiho kvari pravilo "stanje je zbir istorije" | pre prvog pravog deploya (ADR 0008), uz nadzor (ili kao test) |
 | Promena sopstvene lozinke radi dva BCrypt-a dok drži red zaposlenog (`FOR UPDATE`) | kratko blokira audit upis istog naloga; nije deadlock | nizak prioritet |
 | Porudžbine napravljene dok je radio kod iz 2.1 (pre `V4`) skinule su zalihu bez `OUT` reda, pa otkazivanje ništa ne vraća | samo lokalne baze koje su baš tada imale porudžbinu; ništa nije u produkciji | reset dev baze |
 | Dev seed spaja proizvode po imenu (ime nije jedinstveno) | proizvod napravljen kasnije sa istim imenom može da pokvari seed; samo dev | nizak prioritet |
-| Obavezan HTTPS (kolačić sesije sa `Secure`, preusmeravanje sa HTTP-a, HSTS) | bez njega se kolačić sesije zaposlenog šalje nešifrovano | pre deploya |
-| Dvofaktorska prijava (2FA, npr. TOTP aplikacija) bar za vlasnika | ukradena lozinka vlasnika daje pristup svemu | Faza 6, pre deploya |
-| Actuator na posebnom portu i backend dostupan samo Next serveru | `rewrites` nisu bezbednosna granica | pre deploya |
-| Pun CSP sa nonce-om i pinovanje akcija po SHA uz Dependabot | dodatna odbrana | pre deploya |
-| `X-Forwarded-For` je pouzdan samo dok backend vidi samo Next server (`forward-headers-strategy: native` je uključen u 3.1) | inače posetilac može da lažira adresu i zaobiđe ograničenje po adresi | pre deploya |
+| Obavezan HTTPS (kolačić sesije sa `Secure`, preusmeravanje sa HTTP-a, HSTS) | bez njega se kolačić sesije zaposlenog šalje nešifrovano | pre prvog pravog deploya (ADR 0008) |
+| Dvofaktorska prijava (2FA, npr. TOTP aplikacija) bar za vlasnika | ukradena lozinka vlasnika daje pristup svemu | pre prvog pravog deploya (ADR 0008) |
+| Actuator na posebnom portu i backend dostupan samo Next serveru | `rewrites` nisu bezbednosna granica | Faza 6 (6.4) |
+| Pun CSP sa nonce-om i pinovanje akcija po SHA uz Dependabot | dodatna odbrana | Faza 6: pun CSP u 6.5, pinovanje akcija u 6.1 |
+| `X-Forwarded-For` je pouzdan samo dok backend vidi samo Next server (`forward-headers-strategy: native` je uključen u 3.1) | inače posetilac može da lažira adresu i zaobiđe ograničenje po adresi | Faza 6 (6.4) |
 | Brojači za prijavu i porudžbine su u memoriji | sa više instanci svaka broji za sebe, restart ih briše | ako bude više instanci |
 | Rezervacija zalihe u korpi (korpa koja "drži" artikal) | kupac može da vidi "na stanju" i dobije `422` pri porudžbini | posle deploya, ako zatreba (kupci su gosti, bez naloga) |
 | Atomski `UPDATE ... RETURNING` umesto `SELECT ... FOR UPDATE` | brže ako jedna varijanta postane usko grlo (ADR 0003) | kad merenje pokaže potrebu |
 | Količina u korpi može da bude veća od zalihe dok kupac ne pošalje porudžbinu (API vraća samo `inStock`, ne tačnu količinu) | kupac saznaje tek na checkout-u, ali dobija tačne stavke | uz rezervaciju ili "još samo N komada" |
-| Uzastopni brojevi porudžbina otkrivaju obim prodaje | konkurent iz dve porudžbine računa koliko ih ima | Faza 6, pre deploya: javni nasumični token ili svesno prihvatiti |
+| Uzastopni brojevi porudžbina otkrivaju obim prodaje | konkurent iz dve porudžbine računa koliko ih ima | Faza 6 (6.7): javni nasumični token |
 
 ## Urađeno
 
@@ -235,3 +240,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3, 4 i 5. Nijedna stavka ne b
   10. `run.sh` je menjao zalihu bez kretanja: ispravljeno (`ADJUSTMENT` sa razlikom). Perf baza napravljena pre ispravke ima 33 varijante gde zaliha nije zbir kretanja; za čisto merenje pravi se iznova.
   Testovi posle ispravki: 252 backend (8 za broadcaster, 7 za tok na pravom HTTP serveru, novi testovi za mesec i nedelju) i 208 frontend, `tsc`, lint i `next build`. Provereno kroz Next: dve istovremene porudžbine daju dva obaveštenja.
 - **Faza 5 zatvorena**: ROADMAP (Faza 5 gotova, "Šta su odluke donele", predlog Faze 6), README status, ADR 0007 dopunjen, rokovi duga pregledani (vizuelne provere, storno, Dependabot, 2FA i uzastopni brojevi u Fazu 6), `CLAUDE.md` na Fazu 6.
+- **6.0, odluke Faze 6**: agent `boring-tech-advisor` (definicija iz plugina `backend-design`, opšti agent) izazvao je platformu, bazu i nadzor. Presude: VPS sa Docker Compose i Caddy, Postgres u kontejneru sa rolama `shop_migrator` i `shop_app`, nadzor kroz uptime ping i skriptu nad metrikama reda. Autor je odlučio da je projekat demo, pa je pravi deploy odložen ([ADR 0008](adr/0008-deploy-postponed.md)) i sačuvan sa spike listom. Faza 6 postaje priprema: 6.1 Dependabot, 6.2 Docker, 6.3 korisnik baze, 6.4 Actuator port, 6.5 CSP, 6.6 idempotentni ključ, 6.7 token porudžbine, 6.8 storno račun, 6.9 UI revizija, 6.10 Playwright, 6.11 pregled i zatvaranje. Stavke sa rokom "pre deploya" su ili ušle u 6.x ili dobile rok "pre prvog pravog deploya".

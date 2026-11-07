@@ -100,28 +100,35 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Logovi kao JSON, metrike reda i health bez obaranja shopa; CI je prvi put pao i našao pravu grešku u slanju obaveštenja
 - Pregled koda cele faze: 10 nalaza, 9 ispravljeno (2 potvrđena testom koji je pao), 1 svesno ostavljen kao dug
 
-## Faza 6: Priprema za deploy i deploy (sledeća, predlog)
+## Faza 6: Priprema za deploy (u toku)
 
-Predlog sastavljen od otvorenih stavki iz "Kroz sve faze" i duga sa rokom "pre deploya"; plan i redosled se potvrđuju na početku faze.
+Plan potvrđen 2026-11-07. Pravi deploy je odložen do dana kad se softver bude prodavao ([ADR 0008](adr/0008-deploy-postponed.md)); faza priprema sistem tako da se pokreće jednom komandom i da je bezbednosni dug koji se može zatvoriti bez hostinga zatvoren. Jedna grana i jedan PR po celini.
 
-- [ ] Izbor deploya (Fly.io, Render, Railway, VPS) i baze; javni link u README-u
-- [ ] Dockerfile za backend i frontend, ceo sistem jednom komandom
-- [ ] End-to-end test cele kupovine (npr. Playwright)
-- [ ] Bezbednost pre puštanja: HTTPS i HSTS, `__Host-` kolačići, 2FA bar za vlasnika, poseban korisnik baze, Actuator na posebnom portu, backend dostupan samo Next serveru, proxy koji čita adresu backenda u runtime-u, pun CSP
-- [ ] Idempotentni ključ za porudžbinu, storno račun, uzastopni brojevi porudžbina
-- [ ] Nadzor: Prometheus format, uzbuna na metrike reda, `shm_size` i tajmauti baze na izabranoj platformi
-- [ ] Vizuelna provera (svetla tema, telefon, izveštaji, obaveštenja, dashboard), slike proizvoda, Dependabot
+- [x] 6.0 Odluke: ADR 0008, ROADMAP i DECISIONS usklađeni (`boring-tech-advisor` za platformu, bazu i nadzor)
+- [ ] 6.1 Dependabot, pinovanje akcija po SHA, pregled `npm audit`
+- [ ] 6.2 Dockerfile za backend i frontend, ceo sistem jednom komandom, proxy koji čita adresu backenda u runtime-u, profil `dev` se ne uključuje
+- [ ] 6.3 Poseban korisnik baze (`shop_migrator`, `shop_app`) i tajmauti baze
+- [ ] 6.4 Actuator na posebnom portu, backend dostupan samo Next serveru, `X-Forwarded-For`
+- [ ] 6.5 Pun CSP sa nonce-om
+- [ ] 6.6 Idempotentni ključ za porudžbinu
+- [ ] 6.7 Nasumični javni token porudžbine
+- [ ] 6.8 Storno račun
+- [ ] 6.9 UI revizija (`impeccable`, `emil-design-eng`), vizuelnu potvrdu radi autor
+- [ ] 6.10 End-to-end test cele kupovine (Playwright) u CI-ju
+- [ ] 6.11 Pregled koda cele faze i zatvaranje
+
+**Odloženo do prvog pravog deploya** (vidi [ADR 0008](adr/0008-deploy-postponed.md)): izbor platforme, VPS, domen, mejl provajder i javni link; HTTPS, HSTS i `__Host-` kolačići; 2FA za vlasnika; nadzor sa uzbunama i backup sa restore testom; `claude-security` sken.
 
 ## Kroz sve faze: kvalitet i inženjerske prakse
 
-- [ ] Testovi: unit, integracioni (Testcontainers), bar jedan end-to-end (end-to-end je u Fazi 6)
+- [ ] Testovi: unit, integracioni (Testcontainers), bar jedan end-to-end (end-to-end je 6.10)
 - [x] CI na svaki pull request i push na `main` (build + testovi)
-- [ ] Dockerfile za backend, ceo sistem podiže jedna komanda
+- [ ] Dockerfile za backend, ceo sistem podiže jedna komanda (6.2)
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
 - [x] Strukturirani logovi, health check, osnovne metrike (Actuator, 5.1)
-- [ ] Deploy na javni link (README mora da ima link koji radi)
-- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [audit log](adr/0005-append-only-audit-log.md), [red poslova u Postgresu](adr/0006-job-queue-in-postgres.md) i [uživo obaveštenja kroz SSE](adr/0007-admin-live-events-with-sse.md))
+- [ ] Deploy na javni link (odloženo do prodaje softvera, [ADR 0008](adr/0008-deploy-postponed.md))
+- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [audit log](adr/0005-append-only-audit-log.md), [red poslova u Postgresu](adr/0006-job-queue-in-postgres.md), [uživo obaveštenja kroz SSE](adr/0007-admin-live-events-with-sse.md) i [deploy odložen](adr/0008-deploy-postponed.md))
 
 ## Otvorene odluke
 
-Šta još nije odlučeno (deploy, naziv shopa, plaćanje) vodi se u tabeli "Odlučujemo kasnije" u [DECISIONS.md](DECISIONS.md).
+Šta još nije odlučeno (naziv shopa, plaćanje, pravi deploy) vodi se u tabeli "Odlučujemo kasnije" u [DECISIONS.md](DECISIONS.md).
