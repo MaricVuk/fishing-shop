@@ -80,8 +80,13 @@ export type AdminOrderDetail = {
     lineTotal: number;
   }[];
   allowedStatuses: OrderStatus[];
+  invoice: InvoiceSummary;
   history: AuditEntry[];
 };
+
+export type InvoiceStatus = "NONE" | "PENDING" | "ISSUED" | "FAILED";
+
+export type InvoiceSummary = { status: InvoiceStatus; number: string | null; issuedAt: string | null };
 
 export type AdminEmployee = {
   id: number;
@@ -91,3 +96,23 @@ export type AdminEmployee = {
   active: boolean;
   createdAt: string;
 };
+
+export type JobStatus = "PENDING" | "DONE" | "DEAD" | "RESOLVED";
+
+export type JobType = "ORDER_CONFIRMATION_EMAIL" | "ORDER_INVOICE" | "ORDER_INVOICE_EMAIL";
+
+export type AdminJob = {
+  id: number;
+  type: JobType;
+  orderId: number;
+  status: JobStatus;
+  attempts: number;
+  nextAttemptAt: string;
+  lastError: string | null;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+export type AdminJobSummary = { counts: Record<JobStatus, number>; oldestOverdueSince: string | null };
+
+export type AdminJobOverview = AdminJobSummary & { jobs: AdminPage<AdminJob> };

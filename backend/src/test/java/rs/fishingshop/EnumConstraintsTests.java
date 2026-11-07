@@ -10,6 +10,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import rs.fishingshop.audit.AuditAction;
 import rs.fishingshop.audit.AuditEntityType;
 import rs.fishingshop.employees.EmployeeRole;
+import rs.fishingshop.jobs.JobStatus;
+import rs.fishingshop.jobs.JobType;
 import rs.fishingshop.orders.OrderStatus;
 import rs.fishingshop.stock.StockMovementType;
 
@@ -25,6 +27,8 @@ class EnumConstraintsTests extends PostgresIntegrationTest {
         assertMatches("chk_stock_movements_type", StockMovementType.values());
         assertMatches("chk_employees_role", EmployeeRole.values());
         assertMatches("orders_status_check", OrderStatus.values());
+        assertMatches("chk_background_jobs_type", JobType.values());
+        assertMatches("chk_background_jobs_status", JobStatus.values());
     }
 
     private void assertMatches(String constraint, Enum<?>[] values) {

@@ -25,20 +25,19 @@ Težište projekta:
 | Backend | Java 21, Spring Boot 4.1, Spring Data JPA |
 | Baza | PostgreSQL 16, Flyway migracije |
 | Frontend | TypeScript, Next.js 16, Tailwind CSS 4, shadcn/ui |
-| Red poslova | RabbitMQ (Faza 4) |
+| Red poslova | tabela u PostgreSQL-u, worker u Spring Boot-u (Faza 4) |
 | Testovi | JUnit 6, Testcontainers, Vitest |
 | Infrastruktura | Docker, GitHub Actions |
 
 ## Arhitektura
 
 ```
-[Shop (Next.js)]  ──►  [Spring Boot API]  ──►  [PostgreSQL]
-[Admin panel]     ──►        │
-                             ▼
-                       [RabbitMQ red]  ──►  [Worker: mejl, PDF račun, magacin]
+[Shop (Next.js)] ─┐
+                  ├──►  [Spring Boot: API + worker (mejl, PDF)]  ──►  [PostgreSQL: podaci + tabela poslova]
+[Admin panel]    ─┘
 ```
 
-Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Trenutno postoje Next.js shop, Spring Boot API i PostgreSQL, a admin panel i RabbitMQ dolaze po fazama.
+Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Trenutno postoje Next.js shop sa admin panelom, Spring Boot API i PostgreSQL, a pozadinski poslovi dolaze u Fazi 4 ([ADR 0006](docs/adr/0006-job-queue-in-postgres.md)).
 
 ## Status
 
@@ -48,10 +47,10 @@ Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine,
 | 1 | Katalog i porudžbina | Gotova |
 | 2 | Magacin i konkurentnost | Gotova |
 | 3 | Zaposleni, uloge, audit log | Gotova |
-| 4 | Pozadinski poslovi | Sledeća |
-| 5 | Izveštaji, dashboard, uživo obaveštenja | Planirana |
+| 4 | Pozadinski poslovi | Gotova |
+| 5 | Izveštaji, dashboard, uživo obaveštenja | Sledeća |
 
-Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja). Zaliha se proverava i skida pri porudžbini pod zaključavanjem reda, pa ni 50 istovremenih kupaca ne mogu da kupe više nego što ima, a svaka promena zalihe ostaje u istoriji ([ADR 0003](docs/adr/0003-pessimistic-locking-for-stock.md)). Zaposleni se prijavljuju na `/admin` (sesija u bazi, uloge vlasnik, prodavac i magacioner), vode porudžbine i magacin, a svaka izmena ostaje u audit logu koji se ne može menjati ni brisati ([ADR 0004](docs/adr/0004-employee-login-with-server-sessions.md), [ADR 0005](docs/adr/0005-append-only-audit-log.md)).
+Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja). Zaliha se proverava i skida pri porudžbini pod zaključavanjem reda, pa ni 50 istovremenih kupaca ne mogu da kupe više nego što ima, a svaka promena zalihe ostaje u istoriji ([ADR 0003](docs/adr/0003-pessimistic-locking-for-stock.md)). Zaposleni se prijavljuju na `/admin` (sesija u bazi, uloge vlasnik, prodavac i magacioner), vode porudžbine i magacin, a svaka izmena ostaje u audit logu koji se ne može menjati ni brisati ([ADR 0004](docs/adr/0004-employee-login-with-server-sessions.md), [ADR 0005](docs/adr/0005-append-only-audit-log.md)). Kupac dobija mejl potvrde, a kad prodavac potvrdi porudžbinu nastaje PDF račun sa brojem bez rupa i stiže mejlom. Mejlovi i računi idu kroz red poslova u Postgresu sa ponovnim pokušajima, a vlasnik u adminu vidi poslove koji su odustali i ponovo ih pokreće ([ADR 0006](docs/adr/0006-job-queue-in-postgres.md)).
 
 Detalji svake faze su u [planu razvoja](docs/ROADMAP.md).
 
@@ -60,7 +59,7 @@ Detalji svake faze su u [planu razvoja](docs/ROADMAP.md).
 Potrebno: JDK 21 i Docker. Maven nije potreban, projekat ima Maven wrapper (`mvnw`).
 
 ```bash
-# 1. baza
+# 1. baza i Mailpit (hvata mejlove u razvoju)
 docker compose up -d
 
 # 2. backend (profil dev za lokalni rad, vidi ispod)
@@ -77,9 +76,9 @@ curl http://localhost:8080/actuator/health
 curl "http://localhost:8080/api/products?size=3&sort=price_desc"
 ```
 
-Shop je na http://localhost:3000, a dokumentacija API-ja (Swagger UI) na http://localhost:8080/swagger-ui.html.
+Shop je na http://localhost:3000, dokumentacija API-ja (Swagger UI) na http://localhost:8080/swagger-ui.html, a svi mejlovi iz razvoja (potvrde i računi) u Mailpit-u na http://localhost:8025. Mailpit ništa ne šalje napolje.
 
-Profil `dev` je potreban za lokalni rad: daje razvojne vrednosti za bazu (iste kao u `docker-compose.yml`), učitava demo proizvode i uključuje Swagger UI. Bez njega backend traži `DB_URL`, `DB_USER` i `DB_PASSWORD` iz okruženja i ne izlaže Swagger, što je ponašanje za produkciju.
+Profil `dev` je potreban za lokalni rad: daje razvojne vrednosti za bazu (iste kao u `docker-compose.yml`), učitava demo proizvode i uključuje Swagger UI. Bez njega backend traži `DB_URL`, `DB_USER` i `DB_PASSWORD`, mejl server (`MAIL_HOST`, `SHOP_MAIL_FROM` i ostalo) i podatke prodavca za račun (`SHOP_SELLER_*`) iz okruženja (spisak je u `.env.example`) i ne izlaže Swagger, što je ponašanje za produkciju.
 
 Profil `dev` pravi i po jedan nalog zaposlenog za svaku ulogu. Ovi nalozi postoje samo u razvojnoj bazi:
 
@@ -109,7 +108,7 @@ fishing-shop/
 ├── frontend/           Next.js aplikacija
 ├── docs/               plan razvoja i zapisi odluka
 ├── .github/workflows/  CI
-├── docker-compose.yml  PostgreSQL za razvoj
+├── docker-compose.yml  PostgreSQL i Mailpit za razvoj
 ├── .env.example        razvojne vrednosti env varijabli
 └── LICENSE             MIT licenca
 ```
@@ -118,6 +117,7 @@ fishing-shop/
 
 - [Plan razvoja](docs/ROADMAP.md): faze, ciljevi i tehničke teme svake faze
 - [Odluke](docs/DECISIONS.md): šta je izabrano i zašto
+- [Runbook](docs/RUNBOOK.md): šta raditi kad pozadinski poslovi zapnu
 
 ## Licenca
 

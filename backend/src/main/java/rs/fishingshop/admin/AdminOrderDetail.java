@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import rs.fishingshop.audit.AuditEntry;
+import rs.fishingshop.invoices.InvoiceSummary;
 import rs.fishingshop.orders.CustomerOrder;
 import rs.fishingshop.orders.OrderItem;
 import rs.fishingshop.orders.OrderStatus;
@@ -16,6 +17,7 @@ record AdminOrderDetail(
         Customer customer,
         List<Item> items,
         List<OrderStatus> allowedStatuses,
+        InvoiceSummary invoice,
         List<AuditEntry> history) {
 
     record Customer(String name, String email, String phone, String shippingAddress) {
@@ -30,7 +32,7 @@ record AdminOrderDetail(
         }
     }
 
-    static AdminOrderDetail from(CustomerOrder order, List<AuditEntry> history) {
+    static AdminOrderDetail from(CustomerOrder order, InvoiceSummary invoice, List<AuditEntry> history) {
         return new AdminOrderDetail(
                 order.getId(),
                 order.getStatus(),
@@ -40,6 +42,7 @@ record AdminOrderDetail(
                         order.getShippingAddress()),
                 order.getItems().stream().map(Item::from).toList(),
                 order.getStatus().nextStatuses(),
+                invoice,
                 history);
     }
 }

@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.fishingshop.catalog.ProductVariant;
 import rs.fishingshop.catalog.ProductVariantRepository;
+import rs.fishingshop.jobs.JobQueue;
+import rs.fishingshop.jobs.JobType;
 import rs.fishingshop.stock.StockService;
 
 @Service
@@ -22,11 +24,14 @@ public class OrderService {
     private final CustomerOrderRepository orders;
     private final ProductVariantRepository variants;
     private final StockService stock;
+    private final JobQueue jobs;
 
-    public OrderService(CustomerOrderRepository orders, ProductVariantRepository variants, StockService stock) {
+    public OrderService(
+            CustomerOrderRepository orders, ProductVariantRepository variants, StockService stock, JobQueue jobs) {
         this.orders = orders;
         this.variants = variants;
         this.stock = stock;
+        this.jobs = jobs;
     }
 
     @Transactional
@@ -63,6 +68,7 @@ public class OrderService {
 
         CustomerOrder saved = orders.save(order);
         stock.takeForOrder(saved.getId(), quantities);
+        jobs.enqueueForOrder(JobType.ORDER_CONFIRMATION_EMAIL, saved.getId());
         return OrderResponse.from(saved);
     }
 

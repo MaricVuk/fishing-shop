@@ -1,25 +1,28 @@
 import { roleLabel } from "@/lib/admin-nav";
+import { jobTypeLabel } from "@/lib/admin-jobs";
 import { describeChange } from "@/lib/admin-orders";
 import type { AuditEntry, EmployeeRole } from "@/lib/admin-types";
 
 type RawParams = Record<string, string | string[] | undefined>;
 
-export type AuditEntityType = "VARIANT" | "ORDER" | "EMPLOYEE";
+export type AuditEntityType = "VARIANT" | "ORDER" | "EMPLOYEE" | "JOB";
 export type AuditQuery = { type: AuditEntityType | null; page: number };
 
 export const ROLES: EmployeeRole[] = ["OWNER", "SELLER", "WAREHOUSE"];
-export const AUDIT_TYPES: AuditEntityType[] = ["ORDER", "VARIANT", "EMPLOYEE"];
+export const AUDIT_TYPES: AuditEntityType[] = ["ORDER", "VARIANT", "EMPLOYEE", "JOB"];
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ENTITY_LABELS: Record<AuditEntityType, string> = {
   ORDER: "Porudžbina",
   VARIANT: "Varijanta",
   EMPLOYEE: "Zaposleni",
+  JOB: "Posao",
 };
 const TYPE_FILTER_LABELS: Record<AuditEntityType, string> = {
   ORDER: "Porudžbine",
   VARIANT: "Magacin",
   EMPLOYEE: "Zaposleni",
+  JOB: "Poslovi",
 };
 
 export type NewEmployeeValues = { email: string; fullName: string; role: string; password: string };
@@ -104,6 +107,10 @@ export function describeAudit(entry: AuditEntry): string {
       return "Vlasnik je postavio novu lozinku.";
     case "EMPLOYEE_PASSWORD_CHANGED":
       return "Zaposleni je promenio lozinku.";
+    case "JOB_RETRIED":
+      return `Ponovo pokrenut posao ${jobTypeLabel(String(after.type))} za porudžbinu #${after.orderId} (posle ${before.attempts} neuspelih pokušaja).`;
+    case "JOB_RESOLVED":
+      return withReason(`Označen kao rešen posao ${jobTypeLabel(String(after.type))} za porudžbinu #${after.orderId}.`);
     default:
       return entry.action;
   }

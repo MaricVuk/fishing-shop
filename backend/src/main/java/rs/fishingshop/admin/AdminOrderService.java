@@ -12,6 +12,10 @@ import rs.fishingshop.audit.AuditActor;
 import rs.fishingshop.audit.AuditEntityType;
 import rs.fishingshop.audit.AuditService;
 import rs.fishingshop.catalog.PageResponse;
+import rs.fishingshop.invoices.InvoiceService;
+import rs.fishingshop.invoices.StoredInvoice;
+import rs.fishingshop.jobs.JobQueue;
+import rs.fishingshop.jobs.JobType;
 import rs.fishingshop.orders.CustomerOrder;
 import rs.fishingshop.orders.CustomerOrderRepository;
 import rs.fishingshop.orders.OrderStatus;
@@ -27,14 +31,18 @@ class AdminOrderService {
     private final StockService stock;
     private final AuditService audit;
     private final JdbcTemplate jdbc;
+    private final JobQueue jobs;
+    private final InvoiceService invoices;
 
     AdminOrderService(AdminOrderRepository rows, CustomerOrderRepository orders, StockService stock,
-            AuditService audit, JdbcTemplate jdbc) {
+            AuditService audit, JdbcTemplate jdbc, JobQueue jobs, InvoiceService invoices) {
         this.rows = rows;
         this.orders = orders;
         this.stock = stock;
         this.audit = audit;
         this.jdbc = jdbc;
+        this.jobs = jobs;
+        this.invoices = invoices;
     }
 
     @Transactional(readOnly = true)
@@ -48,7 +56,12 @@ class AdminOrderService {
     @Transactional(readOnly = true)
     AdminOrderDetail detail(Long id) {
         CustomerOrder order = orders.findWithItems(id).orElseThrow(() -> new OrderNotFoundException(id));
-        return AdminOrderDetail.from(order, audit.history(AuditEntityType.ORDER, id));
+        return AdminOrderDetail.from(order, invoices.summaryFor(id), audit.history(AuditEntityType.ORDER, id));
+    }
+
+    @Transactional(readOnly = true)
+    StoredInvoice invoice(Long id) {
+        return invoices.findForOrder(id).orElseThrow(() -> new InvoiceNotFoundException(id));
     }
 
     @Transactional
@@ -63,6 +76,9 @@ class AdminOrderService {
 
         Map<Long, Integer> returned = next == OrderStatus.CANCELLED ? stock.returnForOrder(id) : Map.of();
         order.moveTo(next);
+        if (next == OrderStatus.CONFIRMED) {
+            jobs.enqueueForOrder(JobType.ORDER_INVOICE, id);
+        }
 
         Map<String, Object> after = new LinkedHashMap<>();
         after.put("status", next);
@@ -75,7 +91,7 @@ class AdminOrderService {
         audit.record(actor, AuditAction.ORDER_STATUS_CHANGED, AuditEntityType.ORDER, id,
                 Map.of("status", current), after);
 
-        return AdminOrderDetail.from(order, audit.history(AuditEntityType.ORDER, id));
+        return AdminOrderDetail.from(order, invoices.summaryFor(id), audit.history(AuditEntityType.ORDER, id));
     }
 
     private static String trimToNull(String value) {

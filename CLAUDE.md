@@ -8,14 +8,14 @@ Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izv
 
 **Imena:** repo `fishing-shop`, Java paket `rs.fishingshop`, Maven artifactId `fishing-shop`.
 
-**Trenutna faza:** 4 (pozadinski poslovi). Ažuriraj ovu liniju kad krene nova faza.
+**Trenutna faza:** 5 (izveštaji, dashboard, uživo obaveštenja). Ažuriraj ovu liniju kad krene nova faza.
 
 ## Stack
 
 - Backend: Java 21, Spring Boot, Spring Data JPA, Maven (`backend/`)
 - Baza: PostgreSQL 16, Flyway migracije
 - Frontend: Next.js (App Router) + TypeScript (`frontend/`)
-- Red poslova: RabbitMQ (Faza 4)
+- Red poslova: tabela u Postgresu, worker u istom Spring Boot procesu (Faza 4, ADR 0006). Bez RabbitMQ-a
 - Infrastruktura: Docker, GitHub Actions
 
 ## Arhitektura

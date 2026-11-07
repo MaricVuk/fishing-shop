@@ -35,6 +35,25 @@ spring:
     problemdetails:
       enabled: true
 
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
+      mail.smtp.starttls.required: ${MAIL_STARTTLS:true}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 30000
+      mail.smtp.writetimeout: 10000
+
+  task:
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: 45s
+
   session:
     timeout: 30m
     jdbc:
@@ -61,6 +80,22 @@ shop:
   orders:
     max-per-address: 20
     rate-window: 10m
+  mail:
+    from: ${SHOP_MAIL_FROM}
+  invoice:
+    seller-name: ${SHOP_SELLER_NAME}
+    seller-address: ${SHOP_SELLER_ADDRESS}
+    tax-id: ${SHOP_SELLER_TAX_ID}
+    registration-number: ${SHOP_SELLER_REGISTRATION_NUMBER}
+    bank-account: ${SHOP_SELLER_BANK_ACCOUNT}
+    vat-rate: 20
+  jobs:
+    worker-enabled: true
+    poll-interval: 5s
+    batch-size: 10
+    max-attempts: 14
+    base-backoff: 30s
+    max-backoff: 6h
   bootstrap:
     owner-email: ${SHOP_OWNER_EMAIL:}
     owner-password: ${SHOP_OWNER_PASSWORD:}

@@ -4,6 +4,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import rs.fishingshop.auth.EmployeePrincipal;
 import rs.fishingshop.catalog.PageResponse;
+import rs.fishingshop.invoices.StoredInvoice;
 import rs.fishingshop.orders.OrderStatus;
 
 @RestController
@@ -40,6 +46,17 @@ class AdminOrderController {
     @GetMapping("/{id}")
     AdminOrderDetail detail(@PathVariable Long id) {
         return orders.detail(id);
+    }
+
+    @GetMapping("/{id}/invoice")
+    ResponseEntity<byte[]> invoice(@PathVariable Long id) {
+        StoredInvoice invoice = orders.invoice(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(invoice.number() + ".pdf").build().toString())
+                .cacheControl(CacheControl.noStore())
+                .body(invoice.pdf());
     }
 
     @PostMapping("/{id}/status")
