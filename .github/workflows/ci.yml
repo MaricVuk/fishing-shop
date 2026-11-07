@@ -48,3 +48,23 @@ jobs:
       - run: npm test
 
       - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE: docker compose --env-file demo.env -f compose.prod.yml -f compose.demo.yml
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build the images and start the demo stack
+        run: $COMPOSE up --build -d --wait --wait-timeout 420
+
+      - name: Smoke test through the frontend
+        run: scripts/smoke.sh http://127.0.0.1:3100
+
+      - name: Backend runs without the dev profile
+        run: $COMPOSE logs backend | grep -q "No active profile set"
+
+      - name: Container logs
+        if: failure()
+        run: $COMPOSE logs --no-color

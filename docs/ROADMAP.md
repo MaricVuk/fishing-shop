@@ -106,7 +106,7 @@ Plan potvrđen 2026-11-07. Pravi deploy je odložen do dana kad se softver bude 
 
 - [x] 6.0 Odluke: ADR 0008, ROADMAP i DECISIONS usklađeni (`boring-tech-advisor` za platformu, bazu i nadzor)
 - [x] 6.1 Dependabot, pinovanje akcija po SHA, pregled `npm audit`
-- [ ] 6.2 Dockerfile za backend i frontend, ceo sistem jednom komandom, proxy koji čita adresu backenda u runtime-u, profil `dev` se ne uključuje
+- [x] 6.2 Dockerfile za backend i frontend, ceo sistem jednom komandom, proxy koji čita adresu backenda u runtime-u, profil `dev` se ne uključuje
 - [ ] 6.3 Poseban korisnik baze (`shop_migrator`, `shop_app`) i tajmauti baze
 - [ ] 6.4 Actuator na posebnom portu, backend dostupan samo Next serveru, `X-Forwarded-For`
 - [ ] 6.5 Pun CSP sa nonce-om
@@ -123,7 +123,7 @@ Plan potvrđen 2026-11-07. Pravi deploy je odložen do dana kad se softver bude 
 
 - [ ] Testovi: unit, integracioni (Testcontainers), bar jedan end-to-end (end-to-end je 6.10)
 - [x] CI na svaki pull request i push na `main` (build + testovi)
-- [ ] Dockerfile za backend, ceo sistem podiže jedna komanda (6.2)
+- [x] Dockerfile za backend, ceo sistem podiže jedna komanda (6.2)
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
 - [x] Strukturirani logovi, health check, osnovne metrike (Actuator, 5.1)
 - [ ] Deploy na javni link (odloženo do prodaje softvera, [ADR 0008](adr/0008-deploy-postponed.md))

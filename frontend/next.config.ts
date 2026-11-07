@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { BACKEND_URL } from "./src/lib/config";
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -13,12 +12,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
-  },
-  async rewrites() {
-    return [{ source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` }];
   },
   turbopack: {
     rules: {

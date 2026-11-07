@@ -1,0 +1,16 @@
+services:
+  backend:
+    depends_on:
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration,classpath:db/dev
+      SHOP_AUTH_SECURE_COOKIES: "false"
+      MAIL_SMTP_AUTH: "false"
+      MAIL_STARTTLS: "false"
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
