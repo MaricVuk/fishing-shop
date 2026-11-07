@@ -61,7 +61,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [ADR 0005](adr/0005-append-only-audit-log.md): audit log kojem trigger u bazi ne dozvoljava izmenu ni brisanje
 - Sigurnosni pregled sa 4 nezavisna recenzenta (36 nalaza); ostatak je zapisan kao dug u [DECISIONS.md](DECISIONS.md)
 
-## Faza 4: Pozadinski poslovi (u toku)
+## Faza 4: Pozadinski poslovi (gotova)
 
 - [x] Red poslova u Postgresu (outbox), worker ([ADR 0006](adr/0006-job-queue-in-postgres.md))
 - [x] Mejl potvrde, generisanje PDF računa
@@ -73,7 +73,15 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Potvrde poruka (ack/nack), šta se desi kad worker padne usred posla
 - Poison poruke i dead-letter red
 
-## Faza 5: Izveštaji, dashboard, uživo obaveštenja
+**Šta su odluke donele**
+- [ADR 0006](adr/0006-job-queue-in-postgres.md): red poslova je tabela u Postgresu (outbox i red u jednom, `FOR UPDATE SKIP LOCKED`), bez RabbitMQ-a; izazvano agentom `boring-tech-advisor`
+- Umesto ack/nack: posao "u radu" je zaključan red, pa se posao workera koji padne oslobađa sam; neuspeh daje backoff, trajna greška ili 14 pokušaja daju `DEAD`, a vlasnik posao ponavlja ili označava kao rešen u adminu
+- Isporuka je "bar jednom": jedinstven posao po porudžbini i tipu, a mejl može da se ponovi samo ako backend padne između slanja i upisa
+- PDF račun (PDFBox) sa brojem bez rupa, nastaje pri potvrdi porudžbine i ne može da se menja; mejl sa računom je poseban posao
+- Pregled `incident-thinker` pre puštanja workera i pregled koda cele faze (10 nalaza, svi ispravljeni); postupci su u [RUNBOOK.md](RUNBOOK.md)
+- Idempotentni ključ za porudžbinu je pomeren u dug
+
+## Faza 5: Izveštaji, dashboard, uživo obaveštenja (sledeća)
 
 - [ ] Izveštaji: prodaja po periodu, najprodavaniji, niske zalihe
 - [ ] Admin dashboard sa grafikonima
@@ -92,8 +100,8 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
 - [ ] Strukturirani logovi, health check, osnovne metrike (Actuator)
 - [ ] Deploy na javni link (README mora da ima link koji radi)
-- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md) i [audit log](adr/0005-append-only-audit-log.md))
+- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [audit log](adr/0005-append-only-audit-log.md) i [red poslova u Postgresu](adr/0006-job-queue-in-postgres.md))
 
 ## Otvorene odluke
 
-Šta još nije odlučeno (autentikacija, red poslova, UI biblioteka, deploy, naziv shopa) vodi se u tabeli "Odlučujemo kasnije" u [DECISIONS.md](DECISIONS.md).
+Šta još nije odlučeno (deploy, naziv shopa, plaćanje) vodi se u tabeli "Odlučujemo kasnije" u [DECISIONS.md](DECISIONS.md).

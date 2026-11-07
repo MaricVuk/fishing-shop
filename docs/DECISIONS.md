@@ -108,7 +108,7 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 
 ## Dug i otvorene stvari
 
-Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Fazu 3.
+Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blokira Fazu 5.
 
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
@@ -119,13 +119,13 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 | Brisanje starih `DONE` poslova (npr. starijih od 90 dana) | tabela samo raste, oko 100k redova godišnje pri sadašnjem obimu | kad zatreba |
 | Ponovljen mejl potvrde koristi trenutno stanje porudžbine | posle više sati ponavljanja kupac otkazane porudžbine dobije "primili smo" | nizak prioritet |
 | JDBC `socketTimeout` i tajmaut transakcije workera; transakcioni pgbouncer ili `idle_in_transaction_session_timeout` bi oslobodili zaključavanje usred slanja | bez toga zaglavljena veza zaustavlja worker; uz takav proxy dva workera mogu da pošalju isti mejl | pre deploya, uz izbor baze |
-| Idempotentni ključ za porudžbinu | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | Faza 4 |
+| Idempotentni ključ za porudžbinu (`Idempotency-Key`, isti odgovor za ponovljen zahtev) | dupli klik ili ponovljen zahtev pravi dve porudžbine (frontend već onemogućava dugme) | pomereno iz Faze 4: poseban mali PR, pre deploya |
 | Svetla tema i telefon nisu vizuelno provereni (Chrome ne dozvoljava prozor uži od oko 500 px) | izgled je deo portfolija | pre deploya, na pravom telefonu ili kroz DevTools |
 | Slike proizvoda (`image_url` je prazan, kartice imaju rezervnu sliku) | izgled kataloga zavisi od fotografija | pre deploya |
 | Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | pre deploya |
 | Dockerfile za backend i frontend, ceo sistem jednom komandom | ROADMAP to obećava | pre deploya |
 | End-to-end test cele kupovine (npr. Playwright) | ručna provera nije regresioni test | pre deploya |
-| Strukturirani logovi i metrike (Actuator izlaže samo `health` i `info`) | lakši rad u produkciji | Faza 4 ili 5 |
+| Strukturirani logovi i metrike (Actuator izlaže samo `health` i `info`) | lakši rad u produkciji | Faza 5 ili pre deploya |
 | Dependabot (`.github/dependabot.yml`). `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa, bez visokih | zavisnosti zastarevaju | uskoro |
 | CI koristi `mvn`, lokalno `./mvnw`. `ubuntu-latest` prelazi na Ubuntu 26 | ista verzija Mavena i stabilan runner | kad bude zgodno |
 | Indeks za pretragu po nazivu (`pg_trgm`) | `LIKE '%x%'` ne koristi običan indeks, pa je sporo na velikom katalogu | kad katalog naraste |
@@ -179,3 +179,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faze 2. Nijedna stavka ne blokira Faz
 - **4.2, PDF račun**: `V11` (`invoice_counters`, `invoices` sa triggerom protiv izmene, tip posla `ORDER_INVOICE`), posao pri potvrdi porudžbine, `InvoiceService` (broj bez rupa, PDV, upis), `InvoicePdf` (PDFBox, Barlow), `OrderInvoiceHandler` (mejl sa PDF prilogom; ponovljen posao šalje već izdat račun), `ShopMail` (zajedničko slanje za oba mejla), `GET /api/admin/orders/{id}/invoice` za vlasnika i prodavca (`no-store`), stanje računa u detalju porudžbine (`NONE`/`PENDING`/`ISSUED`/`FAILED`) i odeljak "Račun" u adminu. Testovi: posao samo pri potvrdi, prvi broj u godini, nastavak od brojača, poništen račun ne ostavlja rupu, 20 istovremenih računa dobija 1..20, otkazana porudžbina bez računa, ponovljen posao bez drugog računa, emoji u imenu, trigger, preuzimanje po ulogama, PDV sa zaokruživanjem, Vitest za prikaz stanja. Usput: PDFBox 3 primenjuje ligaturu "ij", pa je izvučen tekst glasio "Ovo n e fiskalni"; zamene glifova su isključene. Savepoint nije bio potreban.
 - **4.3, pregled poslova**: stroža provera mejla kupca (`@MailboxAddress`), `V12` (`JOB_RETRIED` i `JOB` u audit logu, indeks `(status, id DESC)`), `GET /api/admin/jobs` (brojevi, najstariji zakasneli posao, filter po stanju i tipu, strane) i `POST /api/admin/jobs/{id}/retry` samo za vlasnika, stranica Poslovi, upozorenje na Pregledu, naziv za `JOB_RETRIED` u audit logu. Testovi: brojevi i filteri, uloge, loši filteri, ponovni pokušaj sa auditom, `409` za `PENDING`/`DONE`, `404`, CSRF, dva vlasnika istovremeno (mutacija bez `FOR UPDATE` daje dva uspeha), worker obradi ponovljen posao; Vitest za filtere, nazive, množinu u upozorenju, navigaciju i audit opis.
 - **Pregled koda Faze 4** (`code-review`, 10 nalaza, svi ispravljeni): račun i njegov mejl su sada dva posla (`V13`), pa neuspeo mejl ne poništava račun i brojač se ne drži tokom SMTP-a; stanje `RESOLVED` i "Označi kao rešeno"; `summary` za Pregled i Pregled koji ne pada kad poslovi ne odgovore; worker hvata i `Error` (`StackOverflowError` je takođe `VirtualMachineError`, pa se dalje baca samo `OutOfMemoryError`); mejl računa se ne šalje za otkazanu porudžbinu; poruka za `404` kod "Ponovi"; uklonjen nekorišćen `workerEnabled`; `Object.hasOwn` umesto `in` (test sa `toString` je pao pre ispravke). Moja greška u ovom koraku: pokrenuo sam `git rm --cached` za uklonjenu komponentu, što pravila zabranjuju.
+- **Faza 4 zatvorena**: ROADMAP checklista i "Šta su odluke donele", status i "Trenutno radi" u README-u (uz Mailpit, env varijable i RUNBOOK), pregled duga (idempotentni ključ pomeren, logovi i metrike u Fazu 5), `CLAUDE.md` na Fazu 5.

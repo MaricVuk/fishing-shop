@@ -8,7 +8,7 @@ Ribolovački shop: web shop, magacin, zaposleni i uloge, pozadinski poslovi, izv
 
 **Imena:** repo `fishing-shop`, Java paket `rs.fishingshop`, Maven artifactId `fishing-shop`.
 
-**Trenutna faza:** 4 (pozadinski poslovi). Ažuriraj ovu liniju kad krene nova faza.
+**Trenutna faza:** 5 (izveštaji, dashboard, uživo obaveštenja). Ažuriraj ovu liniju kad krene nova faza.
 
 ## Stack
 
