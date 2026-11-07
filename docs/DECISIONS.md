@@ -1,6 +1,6 @@
 # Odluke
 
-Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [0005 audit log](adr/0005-append-only-audit-log.md), [0006 red poslova u Postgresu](adr/0006-job-queue-in-postgres.md)). Poslednje ažuriranje: 2026-11-06.
+Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `docs/adr/` ([0001 korpa u browseru](adr/0001-client-side-cart.md), [0002 porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [0003 zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [0004 prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [0005 audit log](adr/0005-append-only-audit-log.md), [0006 red poslova u Postgresu](adr/0006-job-queue-in-postgres.md), [0007 uživo obaveštenja kroz SSE](adr/0007-admin-live-events-with-sse.md)). Poslednje ažuriranje: 2026-11-07.
 
 ## Odlučeno
 
@@ -85,6 +85,14 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Pregled poslova (Faza 4) | Stranica `/admin/jobs` samo za vlasnika: brojevi po stanju, lista, poslednja greška. "Ponovi" vraća `DEAD` posao u `PENDING` sa `attempts = 0` (`last_error` ostaje), pod zaključavanjem reda i uz audit `JOB_RETRIED`. Pregled upozorava na `DEAD` poslove i na posao koji kasni više od 10 min | vlasnik je "administrator" kome se prodavac obraća; dva istovremena "Ponovi" daju jedan uspeh i jedan `409` |
 | Rešen posao | Stanje `RESOLVED`: vlasnik označava `DEAD` posao kao rešen (uz opcioni razlog i audit `JOB_RESOLVED`) kad ponavljanje ne pomaže. Upozorenje na Pregledu broji samo `DEAD`; Pregled čita `GET /api/admin/jobs/summary` i bez upozorenja ostaje ispravan kad taj zahtev padne | bez toga upozorenje za trajnu grešku nikad ne nestaje, pa se nove greške ne primećuju |
 | Mejl kupca | Uz `@Email` i `@MailboxAddress`: adresa mora da prođe isti strogi parser (`InternetAddress(..., true)`) kojim se mejl šalje. Isto polje može dobiti dve greške, a frontend prikazuje prvu | proba sa 17 adresa je pokazala da je razlika samo donja crta u domenu (`ana@ex_ample.com`); tvrdnja iz pregleda 4.1 da `a@b@c.rs` prolazi API nije bila tačna |
+| Izveštaji (Faza 5) | Živi SQL upiti nad `orders`, `order_items` i `inventory`, bez materijalizovanog pogleda i zbirne tabele. Brzina se dokazuje sa `EXPLAIN ANALYZE` nad sintetičkim podacima za 5 godina, a indeks se dodaje samo kad ga plan traži | procena za 5 godina: oko 550k porudžbina i 1,4M stavki, što Postgres sabira za stotine ms. Zbirna tabela bi tražila ispravke pri otkazivanju i mogla bi tiho da se razilazi sa stvarnim stanjem; izazvano agentom `boring-tech-advisor`. Prag za promenu: izveštaj za ceo period sporiji od oko 500 ms posle indeksa, onda noćna zbirna tabela samo za zatvorene dane, kao posao u postojećem redu |
+| Keš izveštaja | Nema keša. Ako merenje (k6, p95 preko oko 300 ms) pokaže potrebu, sledeći korak je Caffeine u procesu sa TTL od 60 s, samo za zatvorene dane (današnji dan se uvek računa uživo). Redis tek uz više instanci | desetak korisnika admina ne opravdava keš; Redis bi bio drugi stateful servis za backup i deploy, a keš bez merenja krije zastarele podatke |
+| Prihod u izveštaju | Sve porudžbine osim `CANCELLED`, po `created_at` u vremenu Beograda (`AT TIME ZONE 'Europe/Belgrade'`, i granice perioda i grupisanje po danu). Iznos je zbir kopiranih `unit_price × quantity`, najprodavaniji se grupišu po `variant_id` sa trenutnim nazivom. Grafikon posebno pokazuje deo koji je još `NEW` | baza čuva vreme u UTC-u, pa bi dan po UTC-u pomerao ponoćne porudžbine; dan sa promenom letnjeg vremena ima 23 ili 25 sati. Kopirana cena je ono što je kupac platio, a kopiran naziv se razlikuje posle preimenovanja |
+| Novac u izveštajima | `NUMERIC` → `BigDecimal` → string u JSON-u, a frontend ga ne pretvara u decimalan broj za računanje | biblioteka za grafikone bi inače računala u float-u |
+| Niska zaliha | Jedan prag za celu radnju (`shop.reports.low-stock-threshold`, podrazumevano 3), samo aktivne varijante. Prag po varijanti tek kad zatreba (nova kolona i migracija) | bez migracije, a desetak zaposlenih zna svoje artikle |
+| Ko vidi izveštaje i obaveštenja | Prodaja i najprodavaniji: vlasnik. Niske zalihe: vlasnik i magacioner. Obaveštenje "nova porudžbina": vlasnik i prodavac. "Poslednji komad prodat": vlasnik i magacioner | prihod nije podatak za sve uloge; svako dobija obaveštenje za posao koji radi |
+| Uživo obaveštenja | Server-Sent Events (`SseEmitter`) na `GET /api/admin/events`, događaj posle commit-a, nadoknada propuštenog po `Last-Event-ID` iz `orders` i `stock_movements`, heartbeat. Bez WebSocket-a ([ADR 0007](adr/0007-admin-live-events-with-sse.md)) | poruke idu samo od servera ka adminu, bez nove zavisnosti i bez posebne zaštite poruka; izazvano agentom `boring-tech-advisor`. Uslov je proba kroz Next `rewrites` na produkcionom build-u, a rezervni put je osvežavanje na 15 s |
+| Grafikoni | shadcn/ui `chart` komponenta (Recharts) | uklapa se u već izabran shadcn/ui; ručni SVG bi tražio sopstvene ose, tooltip i pristupačnost |
 
 ## Plan za sub-agente po fazama
 
@@ -95,6 +103,7 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | 2 | recenzent koda, pisac testova za konkurentni test |
 | 3 | `security-reviewer` |
 | 4 | `incident-thinker` pre puštanja workera, `boring-tech-advisor` za pitanje RabbitMQ naspram reda u Postgresu |
+| 5 | `boring-tech-advisor` za keš, uživo obaveštenja i izveštaje (urađeno u 5.0) |
 | Pred deploy | `claude-security` sken, jednom (skup po tokenima) |
 
 ## Odlučujemo kasnije
@@ -108,14 +117,14 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 
 ## Dug i otvorene stvari
 
-Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blokira Fazu 5.
+Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blokira Fazu 5; logovi, metrike i nadzor reda su u celini 5.1.
 
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
 | Storno račun kad se potvrđena porudžbina otkaže | sada račun ostaje, a porudžbina je otkazana; isto važi za otkazivanje u trenutku dok posao pravi račun (obrađivač namerno ne zaključava porudžbinu, da admin ne bi čekao na SMTP) | uz 4.3 ili posle Faze 4 |
 | Fiskalizacija (ESIR) | prodaja fizičkim licima u Srbiji traži fiskalni račun; ovaj PDF to nije | van opsega portfolija |
 | Mejl sa ne-ASCII znakovima (`ćevap@example.rs`, `ana@ćevap.rs`) prolazi API i `InternetAddress`, ali ga SMTP server bez `SMTPUTF8` može odbiti | takav posao se ponavlja kao privremena greška pa posle oko dan završi u `DEAD` | kad se izabere mejl provajder |
-| Nadzor reda van admina: metrika ili upozorenje za `DEAD` poslove i zastoj workera, vreme poslednjeg prolaza workera | admin Pregled sada upozorava vlasnika (4.3), ali samo kad otvori stranicu | uz strukturirane logove i metrike |
+| Nadzor reda van admina: metrika ili upozorenje za `DEAD` poslove i zastoj workera, vreme poslednjeg prolaza workera | admin Pregled sada upozorava vlasnika (4.3), ali samo kad otvori stranicu | 5.1, uz strukturirane logove i metrike |
 | Brisanje starih `DONE` poslova (npr. starijih od 90 dana) | tabela samo raste, oko 100k redova godišnje pri sadašnjem obimu | kad zatreba |
 | Ponovljen mejl potvrde koristi trenutno stanje porudžbine | posle više sati ponavljanja kupac otkazane porudžbine dobije "primili smo" | nizak prioritet |
 | JDBC `socketTimeout` i tajmaut transakcije workera; transakcioni pgbouncer ili `idle_in_transaction_session_timeout` bi oslobodili zaključavanje usred slanja | bez toga zaglavljena veza zaustavlja worker; uz takav proxy dva workera mogu da pošalju isti mejl | pre deploya, uz izbor baze |
@@ -125,7 +134,7 @@ Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blok
 | Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | pre deploya |
 | Dockerfile za backend i frontend, ceo sistem jednom komandom | ROADMAP to obećava | pre deploya |
 | End-to-end test cele kupovine (npr. Playwright) | ručna provera nije regresioni test | pre deploya |
-| Strukturirani logovi i metrike (Actuator izlaže samo `health` i `info`) | lakši rad u produkciji | Faza 5 ili pre deploya |
+| Strukturirani logovi i metrike (Actuator izlaže samo `health` i `info`) | lakši rad u produkciji | 5.1 |
 | Dependabot (`.github/dependabot.yml`). `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa, bez visokih | zavisnosti zastarevaju | uskoro |
 | CI koristi `mvn`, lokalno `./mvnw`. `ubuntu-latest` prelazi na Ubuntu 26 | ista verzija Mavena i stabilan runner | kad bude zgodno |
 | Indeks za pretragu po nazivu (`pg_trgm`) | `LIKE '%x%'` ne koristi običan indeks, pa je sporo na velikom katalogu | kad katalog naraste |
@@ -180,3 +189,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blok
 - **4.3, pregled poslova**: stroža provera mejla kupca (`@MailboxAddress`), `V12` (`JOB_RETRIED` i `JOB` u audit logu, indeks `(status, id DESC)`), `GET /api/admin/jobs` (brojevi, najstariji zakasneli posao, filter po stanju i tipu, strane) i `POST /api/admin/jobs/{id}/retry` samo za vlasnika, stranica Poslovi, upozorenje na Pregledu, naziv za `JOB_RETRIED` u audit logu. Testovi: brojevi i filteri, uloge, loši filteri, ponovni pokušaj sa auditom, `409` za `PENDING`/`DONE`, `404`, CSRF, dva vlasnika istovremeno (mutacija bez `FOR UPDATE` daje dva uspeha), worker obradi ponovljen posao; Vitest za filtere, nazive, množinu u upozorenju, navigaciju i audit opis.
 - **Pregled koda Faze 4** (`code-review`, 10 nalaza, svi ispravljeni): račun i njegov mejl su sada dva posla (`V13`), pa neuspeo mejl ne poništava račun i brojač se ne drži tokom SMTP-a; stanje `RESOLVED` i "Označi kao rešeno"; `summary` za Pregled i Pregled koji ne pada kad poslovi ne odgovore; worker hvata i `Error` (`StackOverflowError` je takođe `VirtualMachineError`, pa se dalje baca samo `OutOfMemoryError`); mejl računa se ne šalje za otkazanu porudžbinu; poruka za `404` kod "Ponovi"; uklonjen nekorišćen `workerEnabled`; `Object.hasOwn` umesto `in` (test sa `toString` je pao pre ispravke). Moja greška u ovom koraku: pokrenuo sam `git rm --cached` za uklonjenu komponentu, što pravila zabranjuju.
 - **Faza 4 zatvorena**: ROADMAP checklista i "Šta su odluke donele", status i "Trenutno radi" u README-u (uz Mailpit, env varijable i RUNBOOK), pregled duga (idempotentni ključ pomeren, logovi i metrike u Fazu 5), `CLAUDE.md` na Fazu 5.
+- **5.0, odluke Faze 5**: agent `boring-tech-advisor` (definicija iz plugina `backend-design`, pokrenut kao opšti agent) izazvao je tri pitanja. Presude: bez keša dok merenje ne pokaže potrebu, SSE umesto WebSocket-a ([ADR 0007](adr/0007-admin-live-events-with-sse.md)), živi upiti umesto zbirnih tabela. Uz to su odlučeni pravilo prihoda, prag niske zalihe, uloge za izveštaje i obaveštenja i biblioteka za grafikone. Tvrdnje agenta koje nisu proverene (tajmaut Next proxy-ja i baferovanje toka) proverava proba u 5.4, a procene broja redova i vremena upita merenje u 5.2.

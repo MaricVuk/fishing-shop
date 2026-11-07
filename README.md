@@ -37,7 +37,7 @@ Težište projekta:
 [Admin panel]    ─┘
 ```
 
-Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Trenutno postoje Next.js shop sa admin panelom, Spring Boot API i PostgreSQL, a pozadinski poslovi dolaze u Fazi 4 ([ADR 0006](docs/adr/0006-job-queue-in-postgres.md)).
+Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine, cene). Frontend samo prikazuje podatke. Postoje Next.js shop sa admin panelom, Spring Boot API sa workerom za pozadinske poslove ([ADR 0006](docs/adr/0006-job-queue-in-postgres.md)) i PostgreSQL. Uživo obaveštenja u adminu dolaze u Fazi 5 kroz Server-Sent Events ([ADR 0007](docs/adr/0007-admin-live-events-with-sse.md)).
 
 ## Status
 
@@ -48,7 +48,7 @@ Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine,
 | 2 | Magacin i konkurentnost | Gotova |
 | 3 | Zaposleni, uloge, audit log | Gotova |
 | 4 | Pozadinski poslovi | Gotova |
-| 5 | Izveštaji, dashboard, uživo obaveštenja | Sledeća |
+| 5 | Izveštaji, dashboard, uživo obaveštenja | U toku |
 
 Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja). Zaliha se proverava i skida pri porudžbini pod zaključavanjem reda, pa ni 50 istovremenih kupaca ne mogu da kupe više nego što ima, a svaka promena zalihe ostaje u istoriji ([ADR 0003](docs/adr/0003-pessimistic-locking-for-stock.md)). Zaposleni se prijavljuju na `/admin` (sesija u bazi, uloge vlasnik, prodavac i magacioner), vode porudžbine i magacin, a svaka izmena ostaje u audit logu koji se ne može menjati ni brisati ([ADR 0004](docs/adr/0004-employee-login-with-server-sessions.md), [ADR 0005](docs/adr/0005-append-only-audit-log.md)). Kupac dobija mejl potvrde, a kad prodavac potvrdi porudžbinu nastaje PDF račun sa brojem bez rupa i stiže mejlom. Mejlovi i računi idu kroz red poslova u Postgresu sa ponovnim pokušajima, a vlasnik u adminu vidi poslove koji su odustali i ponovo ih pokreće ([ADR 0006](docs/adr/0006-job-queue-in-postgres.md)).
 
