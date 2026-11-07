@@ -9,6 +9,6 @@ class JobNotRetryableException extends ErrorResponseException {
 
     JobNotRetryableException(long id, JobStatus status) {
         super(HttpStatus.CONFLICT, ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                "Job " + id + " is " + status + ", only a DEAD job can be retried"), null);
+                "Job " + id + " is " + status + ", only a DEAD job can be retried or resolved"), null);
     }
 }

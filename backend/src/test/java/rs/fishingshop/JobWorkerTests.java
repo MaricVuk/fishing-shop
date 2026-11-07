@@ -1,6 +1,7 @@
 package rs.fishingshop;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -128,6 +129,30 @@ class JobWorkerTests extends CatalogTestSupport {
     }
 
     @Test
+    void anErrorThrownByTheHandlerIsRecordedWithBackoff() {
+        long job = pendingJob();
+
+        worker(claimed -> {
+            throw new StackOverflowError("deep PDF layout");
+        }).runOnce();
+
+        assertThat(row(job)).containsEntry("status", "PENDING").containsEntry("attempts", 1);
+        assertThat((String) row(job).get("last_error")).contains("StackOverflowError");
+        assertThat(nextAttemptAt(job)).isAfter(dbNow());
+    }
+
+    @Test
+    void anOutOfMemoryErrorIsRecordedAndThenRethrown() {
+        long job = pendingJob();
+
+        assertThatThrownBy(() -> worker(claimed -> {
+            throw new OutOfMemoryError("PDF too large");
+        }).runOnce()).isInstanceOf(OutOfMemoryError.class);
+
+        assertThat(row(job)).containsEntry("status", "PENDING").containsEntry("attempts", 1);
+    }
+
+    @Test
     void aFailedSqlStatementInTheHandlerIsStillRecordedAsAFailure() {
         long job = pendingJob();
 
@@ -223,7 +248,7 @@ class JobWorkerTests extends CatalogTestSupport {
                     }
                 })
                 .toList();
-        JobProperties properties = new JobProperties(true, Duration.ofSeconds(5), 10, MAX_ATTEMPTS, BASE_BACKOFF,
+        JobProperties properties = new JobProperties(Duration.ofSeconds(5), 10, MAX_ATTEMPTS, BASE_BACKOFF,
                 MAX_BACKOFF);
         return new JobWorker(jdbc, transactions, handlers, properties);
     }

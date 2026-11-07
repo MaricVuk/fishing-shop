@@ -97,9 +97,9 @@ export type AdminEmployee = {
   createdAt: string;
 };
 
-export type JobStatus = "PENDING" | "DONE" | "DEAD";
+export type JobStatus = "PENDING" | "DONE" | "DEAD" | "RESOLVED";
 
-export type JobType = "ORDER_CONFIRMATION_EMAIL" | "ORDER_INVOICE";
+export type JobType = "ORDER_CONFIRMATION_EMAIL" | "ORDER_INVOICE" | "ORDER_INVOICE_EMAIL";
 
 export type AdminJob = {
   id: number;
@@ -113,8 +113,6 @@ export type AdminJob = {
   finishedAt: string | null;
 };
 
-export type AdminJobOverview = {
-  counts: Record<JobStatus, number>;
-  oldestOverdueSince: string | null;
-  jobs: AdminPage<AdminJob>;
-};
+export type AdminJobSummary = { counts: Record<JobStatus, number>; oldestOverdueSince: string | null };
+
+export type AdminJobOverview = AdminJobSummary & { jobs: AdminPage<AdminJob> };

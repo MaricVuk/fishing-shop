@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Forbidden } from "@/components/admin/forbidden";
-import { RetryJobButton } from "@/components/admin/retry-job-button";
+import { JobActions } from "@/components/admin/job-actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { accessTo } from "@/lib/admin-access";
@@ -27,6 +27,7 @@ const BADGES: Record<JobStatus, "secondary" | "outline" | "destructive"> = {
   PENDING: "secondary",
   DONE: "outline",
   DEAD: "destructive",
+  RESOLVED: "outline",
 };
 
 function when(job: AdminJob): string {
@@ -62,7 +63,8 @@ export default async function JobsPage({ searchParams }: PageProps<"/admin/jobs"
     <>
       <h1 className="text-3xl font-bold">Pozadinski poslovi</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Mejlovi potvrde i računi, najnoviji prvo. Posao koji je odustao možete ponovo pokrenuti kad se uzrok otkloni.
+        Mejlovi potvrde i računi, najnoviji prvo. Posao koji je odustao možete ponovo pokrenuti kad se uzrok otkloni,
+        ili ga označiti kao rešen kad ponavljanje ne treba.
       </p>
 
       <nav aria-label="Filter po stanju" className="mt-6 -mx-1 flex gap-1 overflow-x-auto">
@@ -121,14 +123,7 @@ export default async function JobsPage({ searchParams }: PageProps<"/admin/jobs"
                   </td>
                   <td className="px-4 py-3">
                     {job.status === "DEAD" && (
-                      <>
-                        <RetryJobButton jobId={job.id} />
-                        {isPermanentFailure(job.lastError) && (
-                          <p className="mt-1 max-w-48 text-xs text-muted-foreground">
-                            Ponavljanje neće pomoći dok se uzrok ne ispravi.
-                          </p>
-                        )}
-                      </>
+                      <JobActions jobId={job.id} permanent={isPermanentFailure(job.lastError)} />
                     )}
                   </td>
                 </tr>

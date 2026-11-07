@@ -8,15 +8,10 @@ import {
   jobsHref,
   parseJobQuery,
 } from "@/lib/admin-jobs";
-import type { AdminJobOverview } from "@/lib/admin-types";
+import type { AdminJobSummary } from "@/lib/admin-types";
 
-function overview(patch: Partial<AdminJobOverview> = {}): AdminJobOverview {
-  return {
-    counts: { PENDING: 0, DONE: 3, DEAD: 0 },
-    oldestOverdueSince: null,
-    jobs: { content: [], page: 0, size: 1, totalElements: 3, totalPages: 3 },
-    ...patch,
-  };
+function overview(patch: Partial<AdminJobSummary> = {}): AdminJobSummary {
+  return { counts: { PENDING: 0, DONE: 3, DEAD: 0, RESOLVED: 0 }, oldestOverdueSince: null, ...patch };
 }
 
 describe("parseJobQuery", () => {
@@ -39,9 +34,16 @@ describe("jobsHref", () => {
 
 describe("labels", () => {
   it("names every status and job type in Serbian", () => {
-    expect(JOB_STATUSES.map(jobStatusLabel)).toEqual(["Čeka", "Završen", "Odustao"]);
+    expect(JOB_STATUSES.map(jobStatusLabel)).toEqual(["Čeka", "Završen", "Odustao", "Rešen"]);
     expect(jobTypeLabel("ORDER_CONFIRMATION_EMAIL")).toBe("Potvrda porudžbine");
     expect(jobTypeLabel("ORDER_INVOICE")).toBe("Račun");
+    expect(jobTypeLabel("ORDER_INVOICE_EMAIL")).toBe("Mejl sa računom");
+  });
+
+  it("falls back to the raw type, also for names that exist on every object", () => {
+    expect(jobTypeLabel("SOMETHING_NEW")).toBe("SOMETHING_NEW");
+    expect(jobTypeLabel("toString")).toBe("toString");
+    expect(jobTypeLabel("constructor")).toBe("constructor");
   });
 });
 
@@ -56,20 +58,21 @@ describe("isPermanentFailure", () => {
 describe("jobsAlert", () => {
   const now = new Date("2026-11-06T20:00:00Z");
 
-  it("stays quiet when nothing is dead or late", () => {
+  it("stays quiet when nothing is dead or late, resolved jobs included", () => {
     expect(jobsAlert(overview(), now)).toBeNull();
+    expect(jobsAlert(overview({ counts: { PENDING: 0, DONE: 3, DEAD: 0, RESOLVED: 4 } }), now)).toBeNull();
     expect(jobsAlert(overview({ oldestOverdueSince: "2026-11-06T19:58:00Z" }), now)).toBeNull();
   });
 
   it("warns about dead jobs and links to them", () => {
-    expect(jobsAlert(overview({ counts: { PENDING: 0, DONE: 3, DEAD: 2 } }), now)).toEqual({
+    expect(jobsAlert(overview({ counts: { PENDING: 0, DONE: 3, DEAD: 2, RESOLVED: 0 } }), now)).toEqual({
       text: "2 pozadinska posla su odustala. Mejlovi ili računi nisu poslati.",
       href: "/admin/jobs?status=DEAD",
     });
-    expect(jobsAlert(overview({ counts: { PENDING: 0, DONE: 3, DEAD: 1 } }), now)?.text).toBe(
+    expect(jobsAlert(overview({ counts: { PENDING: 0, DONE: 3, DEAD: 1, RESOLVED: 0 } }), now)?.text).toBe(
       "1 pozadinski posao je odustao. Mejlovi ili računi nisu poslati.",
     );
-    expect(jobsAlert(overview({ counts: { PENDING: 0, DONE: 3, DEAD: 5 } }), now)?.text).toBe(
+    expect(jobsAlert(overview({ counts: { PENDING: 0, DONE: 3, DEAD: 5, RESOLVED: 0 } }), now)?.text).toBe(
       "5 pozadinskih poslova je odustalo. Mejlovi ili računi nisu poslati.",
     );
   });

@@ -1,21 +1,23 @@
-import type { AdminJobOverview, JobStatus, JobType } from "@/lib/admin-types";
+import type { AdminJobSummary, JobStatus, JobType } from "@/lib/admin-types";
 
 type RawParams = Record<string, string | string[] | undefined>;
 
 export type JobQuery = { status: JobStatus | null; page: number };
 export type JobsAlert = { text: string; href: string };
 
-export const JOB_STATUSES: JobStatus[] = ["PENDING", "DONE", "DEAD"];
+export const JOB_STATUSES: JobStatus[] = ["PENDING", "DONE", "DEAD", "RESOLVED"];
 
 const STATUS_LABELS: Record<JobStatus, string> = {
   PENDING: "Čeka",
   DONE: "Završen",
   DEAD: "Odustao",
+  RESOLVED: "Rešen",
 };
 
 const TYPE_LABELS: Record<JobType, string> = {
   ORDER_CONFIRMATION_EMAIL: "Potvrda porudžbine",
   ORDER_INVOICE: "Račun",
+  ORDER_INVOICE_EMAIL: "Mejl sa računom",
 };
 
 const MAX_PAGE = 10_000;
@@ -52,7 +54,7 @@ export function jobStatusLabel(status: JobStatus): string {
 }
 
 export function jobTypeLabel(type: string): string {
-  return type in TYPE_LABELS ? TYPE_LABELS[type as JobType] : type;
+  return Object.hasOwn(TYPE_LABELS, type) ? TYPE_LABELS[type as JobType] : type;
 }
 
 export function isPermanentFailure(lastError: string | null): boolean {
@@ -69,7 +71,7 @@ function deadJobs(count: number): string {
   return `${count} pozadinskih poslova je odustalo`;
 }
 
-export function jobsAlert(overview: AdminJobOverview, now: Date): JobsAlert | null {
+export function jobsAlert(overview: AdminJobSummary, now: Date): JobsAlert | null {
   const dead = overview.counts.DEAD;
   if (dead > 0) {
     return { text: `${deadJobs(dead)}. Mejlovi ili računi nisu poslati.`, href: "/admin/jobs?status=DEAD" };

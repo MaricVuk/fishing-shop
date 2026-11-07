@@ -14,6 +14,8 @@ import jakarta.servlet.http.Cookie;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -31,6 +33,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.support.TransactionTemplate;
 import rs.fishingshop.invoices.InvoiceService;
+import rs.fishingshop.jobs.ClaimedJob;
+import rs.fishingshop.jobs.JobHandler;
+import rs.fishingshop.jobs.JobProperties;
+import rs.fishingshop.jobs.JobType;
 import rs.fishingshop.jobs.JobWorker;
 
 @AutoConfigureMockMvc
@@ -58,6 +64,12 @@ class InvoiceTests extends EmployeeTestSupport {
 
     @Autowired
     TransactionTemplate transactions;
+
+    @Autowired
+    List<JobHandler> handlers;
+
+    @Autowired
+    JobProperties jobProperties;
 
     long rod;
 
@@ -213,19 +225,133 @@ class InvoiceTests extends EmployeeTestSupport {
     }
 
     @Test
-    void aRetriedJobReusesTheIssuedInvoiceInsteadOfIssuingASecondOne() throws Exception {
+    void aRetriedInvoiceJobNeitherIssuesASecondInvoiceNorEmailsAgain() throws Exception {
         long order = confirmedOrder(1);
         worker.runOnce();
-        jdbc.update("""
-                UPDATE background_jobs SET status = 'PENDING', finished_at = NULL
-                WHERE order_id = ? AND type = 'ORDER_INVOICE'
-                """, order);
+        reopen(order, "ORDER_INVOICE");
         Mailpit.clear();
 
         worker.runOnce();
 
         assertThat(jdbc.queryForObject("SELECT count(*) FROM invoices", Integer.class)).isEqualTo(1);
-        assertThat((Integer) JsonPath.read(Mailpit.messages(), "$.total")).isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM background_jobs WHERE order_id = ? AND type = 'ORDER_INVOICE_EMAIL'",
+                Integer.class, order)).isEqualTo(1);
+        assertThat((Integer) JsonPath.read(Mailpit.messages(), "$.total")).isZero();
+    }
+
+    @Test
+    void aRetriedInvoiceEmailSendsTheStoredPdfAgain() throws Exception {
+        long order = confirmedOrder(1);
+        worker.runOnce();
+        reopen(order, "ORDER_INVOICE_EMAIL");
+        Mailpit.clear();
+
+        worker.runOnce();
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM invoices", Integer.class)).isEqualTo(1);
+        List<String> subjects = JsonPath.read(Mailpit.messages(), "$.messages[*].Subject");
+        assertThat(subjects).containsExactly("Račun RN-" + currentYear() + "-000001");
+    }
+
+    @Test
+    void theInvoiceStaysIssuedWhenItsEmailCanNeverBeSent() throws Exception {
+        long order = confirmedOrder(1);
+        jdbc.update("UPDATE orders SET customer_email = 'a@b@invoices.test' WHERE id = ?", order);
+
+        worker.runOnce();
+
+        assertThat(jdbc.queryForObject("SELECT number FROM invoices WHERE order_id = ?", String.class, order))
+                .isEqualTo("RN-" + currentYear() + "-000001");
+        assertThat(jdbc.queryForObject(
+                "SELECT status FROM background_jobs WHERE order_id = ? AND type = 'ORDER_INVOICE_EMAIL'",
+                String.class, order)).isEqualTo("DEAD");
+        mvc.perform(get("/api/admin/orders/{id}", order).cookie(logIn(mvc, OWNER)))
+                .andExpect(jsonPath("$.invoice.status").value("ISSUED"));
+    }
+
+    @Test
+    void anInvoiceIsNotEmailedForAnOrderCancelledAfterItWasIssued() throws Exception {
+        long order = confirmedOrder(1);
+        transactions.executeWithoutResult(tx -> invoices.issue(order));
+        jdbc.update("UPDATE background_jobs SET status = 'DONE', finished_at = now() "
+                + "WHERE order_id = ? AND type = 'ORDER_INVOICE'", order);
+        jdbc.update("INSERT INTO background_jobs (type, order_id) VALUES ('ORDER_INVOICE_EMAIL', ?)", order);
+        jdbc.update("UPDATE orders SET status = 'CANCELLED' WHERE id = ?", order);
+        jdbc.update("UPDATE background_jobs SET status = 'DONE', finished_at = now() "
+                + "WHERE order_id = ? AND type = 'ORDER_CONFIRMATION_EMAIL'", order);
+        Mailpit.clear();
+
+        worker.runOnce();
+
+        assertThat((Integer) JsonPath.read(Mailpit.messages(), "$.total")).isZero();
+        assertThat(jdbc.queryForObject(
+                "SELECT status FROM background_jobs WHERE order_id = ? AND type = 'ORDER_INVOICE_EMAIL'",
+                String.class, order)).isEqualTo("DONE");
+    }
+
+    @Test
+    void sendingOneInvoiceEmailDoesNotHoldUpIssuingTheNextInvoice() throws Exception {
+        long first = confirmedOrder(1);
+        long second = confirmedOrder(1);
+        jdbc.update("UPDATE background_jobs SET status = 'DONE', finished_at = now() "
+                + "WHERE type = 'ORDER_CONFIRMATION_EMAIL' AND order_id IN (?, ?)", first, second);
+        jdbc.update("UPDATE background_jobs SET next_attempt_at = now() + interval '1 hour' "
+                + "WHERE type = 'ORDER_INVOICE' AND order_id = ?", second);
+        CountDownLatch sending = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        JobWorker slowMailWorker = workerWith(JobType.ORDER_INVOICE_EMAIL, job -> {
+            sending.countDown();
+            await(release);
+        });
+
+        CompletableFuture<Integer> busy = CompletableFuture.supplyAsync(slowMailWorker::runOnce);
+        try {
+            assertThat(sending.await(20, TimeUnit.SECONDS)).isTrue();
+
+            transactions.executeWithoutResult(tx -> {
+                jdbc.execute("SET LOCAL lock_timeout = '1s'");
+                invoices.issue(second);
+            });
+        } finally {
+            release.countDown();
+            busy.get(30, TimeUnit.SECONDS);
+        }
+        assertThat(jdbc.queryForObject("SELECT number FROM invoices WHERE order_id = ?", String.class, second))
+                .isEqualTo("RN-" + currentYear() + "-000002");
+    }
+
+    private JobWorker workerWith(JobType replaced, java.util.function.Consumer<ClaimedJob> behaviour) {
+        List<JobHandler> wrapped = handlers.stream()
+                .map(handler -> handler.type() != replaced ? handler : new JobHandler() {
+                    @Override
+                    public JobType type() {
+                        return replaced;
+                    }
+
+                    @Override
+                    public void handle(ClaimedJob job) {
+                        behaviour.accept(job);
+                        handler.handle(job);
+                    }
+                })
+                .toList();
+        return new JobWorker(jdbc, transactions, wrapped, jobProperties);
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            latch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void reopen(long order, String type) {
+        jdbc.update("""
+                UPDATE background_jobs SET status = 'PENDING', finished_at = NULL, next_attempt_at = now()
+                WHERE order_id = ? AND type = ?
+                """, order, type);
     }
 
     @Test

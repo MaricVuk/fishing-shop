@@ -60,11 +60,14 @@ public class JobWorker {
                 markDone(claimed[0]);
                 return true;
             }));
-        } catch (RuntimeException failure) {
+        } catch (RuntimeException | Error failure) {
             if (claimed[0] == null) {
                 throw failure;
             }
             recordFailure(claimed[0].id(), failure);
+            if (failure instanceof OutOfMemoryError) {
+                throw failure;
+            }
             return true;
         }
     }
@@ -87,7 +90,7 @@ public class JobWorker {
         jdbc.update("UPDATE background_jobs SET status = 'DONE', finished_at = now() WHERE id = ?", job.id());
     }
 
-    private void markFailed(ClaimedJob job, RuntimeException failure) {
+    private void markFailed(ClaimedJob job, Throwable failure) {
         int attempts = job.attempts() + 1;
         String error = describe(failure);
         if (attempts >= properties.maxAttempts() || failure instanceof PermanentJobFailure) {
@@ -112,7 +115,7 @@ public class JobWorker {
 
     // The failed transaction is rolled back first, so another worker may retry the job before this
     // records the failure. SKIP LOCKED leaves the count to that worker instead of waiting for it.
-    private void recordFailure(long jobId, RuntimeException failure) {
+    private void recordFailure(long jobId, Throwable failure) {
         transactions.executeWithoutResult(tx -> jdbc.query("""
                 SELECT id, type, order_id, attempts FROM background_jobs
                 WHERE id = ? AND status = 'PENDING'
@@ -134,7 +137,7 @@ public class JobWorker {
                 rs.getLong("id"), JobType.valueOf(rs.getString("type")), rs.getLong("order_id"), rs.getInt("attempts"));
     }
 
-    private static String describe(RuntimeException failure) {
+    private static String describe(Throwable failure) {
         String text = (failure.getClass().getSimpleName() + ": " + failure.getMessage())
                 .replaceAll("\\p{Cntrl}", " ");
         return text.length() > MAX_ERROR_LENGTH ? text.substring(0, MAX_ERROR_LENGTH) : text;

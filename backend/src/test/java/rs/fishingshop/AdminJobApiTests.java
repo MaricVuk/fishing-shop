@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -216,6 +217,62 @@ class AdminJobApiTests extends EmployeeTestSupport {
 
         assertThat(statusOf(dead)).isEqualTo("DONE");
         assertThat((Integer) JsonPath.read(Mailpit.messages(), "$.total")).isEqualTo(1);
+    }
+
+    @Test
+    void resolvingADeadJobClosesItWithTheReasonAndIsAudited() throws Exception {
+        long dead = job("ORDER_INVOICE_EMAIL", "DEAD");
+
+        resolve(logIn(mvc, OWNER), dead, "{\"reason\":\"Kupac je dobio račun lično\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESOLVED"))
+                .andExpect(jsonPath("$.attempts").value(14))
+                .andExpect(jsonPath("$.finishedAt").isNotEmpty());
+
+        Map<String, Object> audit = jdbc.queryForMap(
+                "SELECT action, entity_type, old_value::text AS old_value, new_value::text AS new_value FROM audit_log");
+        assertThat(audit).containsEntry("action", "JOB_RESOLVED").containsEntry("entity_type", "JOB");
+        assertThat((String) audit.get("old_value")).contains("\"status\": \"DEAD\"");
+        assertThat((String) audit.get("new_value")).contains("\"status\": \"RESOLVED\"")
+                .contains("Kupac je dobio račun lično");
+        worker.runOnce();
+        assertThat(statusOf(dead)).isEqualTo("RESOLVED");
+    }
+
+    @Test
+    void onlyADeadJobCanBeResolvedAndOnlyByTheOwner() throws Exception {
+        Cookie owner = logIn(mvc, OWNER);
+        long pending = job("ORDER_INVOICE", "PENDING");
+        long dead = job("ORDER_INVOICE", "DEAD");
+
+        resolve(owner, pending, "{}").andExpect(status().isConflict());
+        resolve(owner, 999_999_999L, "{}").andExpect(status().isNotFound());
+        resolve(owner, dead, "{\"reason\":\"" + "x".repeat(201) + "\"}").andExpect(status().isBadRequest());
+        resolve(logIn(mvc, SELLER), dead, "{}").andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/jobs/{id}/resolve", dead).cookie(owner)
+                .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
+        resolve(owner, dead, "{}").andExpect(status().isOk());
+        resolve(owner, dead, "{}").andExpect(status().isConflict());
+        retry(owner, dead).andExpect(status().isConflict());
+    }
+
+    @Test
+    void theSummaryHasOnlyCountsAndTheOldestOverdueJob() throws Exception {
+        job("ORDER_INVOICE", "DEAD");
+        long resolved = job("ORDER_INVOICE", "DEAD");
+        jdbc.update("UPDATE background_jobs SET status = 'RESOLVED' WHERE id = ?", resolved);
+
+        mvc.perform(get("/api/admin/jobs/summary").cookie(logIn(mvc, OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.counts.DEAD").value(1))
+                .andExpect(jsonPath("$.counts.RESOLVED").value(1))
+                .andExpect(jsonPath("$.jobs").doesNotExist());
+        mvc.perform(get("/api/admin/jobs/summary").cookie(logIn(mvc, SELLER))).andExpect(status().isForbidden());
+    }
+
+    private ResultActions resolve(Cookie session, long job, String body) throws Exception {
+        return mvc.perform(post("/api/admin/jobs/{id}/resolve", job).with(csrf()).cookie(session)
+                .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
     private long job(String type, String status) {

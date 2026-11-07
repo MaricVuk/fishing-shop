@@ -33,7 +33,7 @@ class AdminJobService {
     }
 
     @Transactional(readOnly = true)
-    AdminJobOverview overview(JobStatus status, JobType type, int page, int size) {
+    AdminJobSummary summary() {
         Map<JobStatus, Long> counts = new EnumMap<>(JobStatus.class);
         for (JobStatus each : JobStatus.values()) {
             counts.put(each, 0L);
@@ -46,7 +46,12 @@ class AdminJobService {
                 SELECT min(next_attempt_at) FROM background_jobs
                 WHERE status = 'PENDING' AND next_attempt_at <= now()
                 """, OffsetDateTime.class);
+        return new AdminJobSummary(counts, oldest == null ? null : oldest.toInstant());
+    }
 
+    @Transactional(readOnly = true)
+    AdminJobOverview overview(JobStatus status, JobType type, int page, int size) {
+        AdminJobSummary summary = summary();
         StringBuilder where = new StringBuilder(" WHERE TRUE");
         List<Object> args = new ArrayList<>();
         if (status != null) {
@@ -65,32 +70,57 @@ class AdminJobService {
                 "SELECT " + COLUMNS + " FROM background_jobs" + where + " ORDER BY id DESC LIMIT ? OFFSET ?",
                 AdminJobRow::from, pageArgs.toArray());
         int pages = (int) ((total + size - 1) / size);
-        return new AdminJobOverview(counts, oldest == null ? null : oldest.toInstant(),
+        return new AdminJobOverview(summary.counts(), summary.oldestOverdueSince(),
                 new PageResponse<>(rows, page, size, total, pages));
     }
 
     @Transactional
     AdminJobRow retry(AuditActor actor, long id) {
-        jdbc.execute("SET LOCAL lock_timeout = '" + LOCK_TIMEOUT + "'");
-        AdminJobRow current = jdbc.query("SELECT " + COLUMNS + " FROM background_jobs WHERE id = ? FOR UPDATE",
-                AdminJobRow::from, id).stream().findFirst().orElseThrow(() -> new JobNotFoundException(id));
-        if (current.status() != JobStatus.DEAD) {
-            throw new JobNotRetryableException(id, current.status());
-        }
+        AdminJobRow current = lockDead(id);
         AdminJobRow retried = jdbc.queryForObject("""
                 UPDATE background_jobs
                 SET status = 'PENDING', attempts = 0, next_attempt_at = now(), finished_at = NULL
                 WHERE id = ?
                 RETURNING
                 """ + COLUMNS, AdminJobRow::from, id);
-
-        Map<String, Object> before = new LinkedHashMap<>();
-        before.put("status", current.status());
-        before.put("attempts", current.attempts());
-        before.put("lastError", current.lastError());
-        before.put("finishedAt", current.finishedAt() == null ? null : current.finishedAt().toString());
-        audit.record(actor, AuditAction.JOB_RETRIED, AuditEntityType.JOB, id, before,
+        audit.record(actor, AuditAction.JOB_RETRIED, AuditEntityType.JOB, id, before(current),
                 Map.of("status", JobStatus.PENDING, "type", current.type(), "orderId", current.orderId()));
         return retried;
+    }
+
+    @Transactional
+    AdminJobRow resolve(AuditActor actor, long id, ResolveJobRequest request) {
+        AdminJobRow current = lockDead(id);
+        AdminJobRow resolved = jdbc.queryForObject("""
+                UPDATE background_jobs SET status = 'RESOLVED', finished_at = now()
+                WHERE id = ?
+                RETURNING
+                """ + COLUMNS, AdminJobRow::from, id);
+        Map<String, Object> after = new LinkedHashMap<>();
+        after.put("status", JobStatus.RESOLVED);
+        after.put("type", current.type());
+        after.put("orderId", current.orderId());
+        after.put("reason", request.reason() == null || request.reason().isBlank() ? null : request.reason().trim());
+        audit.record(actor, AuditAction.JOB_RESOLVED, AuditEntityType.JOB, id, before(current), after);
+        return resolved;
+    }
+
+    private AdminJobRow lockDead(long id) {
+        jdbc.execute("SET LOCAL lock_timeout = '" + LOCK_TIMEOUT + "'");
+        AdminJobRow current = jdbc.query("SELECT " + COLUMNS + " FROM background_jobs WHERE id = ? FOR UPDATE",
+                AdminJobRow::from, id).stream().findFirst().orElseThrow(() -> new JobNotFoundException(id));
+        if (current.status() != JobStatus.DEAD) {
+            throw new JobNotRetryableException(id, current.status());
+        }
+        return current;
+    }
+
+    private static Map<String, Object> before(AdminJobRow job) {
+        Map<String, Object> before = new LinkedHashMap<>();
+        before.put("status", job.status());
+        before.put("attempts", job.attempts());
+        before.put("lastError", job.lastError());
+        before.put("finishedAt", job.finishedAt() == null ? null : job.finishedAt().toString());
+        return before;
     }
 }

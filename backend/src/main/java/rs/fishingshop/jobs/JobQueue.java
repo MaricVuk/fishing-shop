@@ -18,4 +18,12 @@ public class JobQueue {
     public void enqueueForOrder(JobType type, long orderId) {
         jdbc.update("INSERT INTO background_jobs (type, order_id) VALUES (?, ?)", type.name(), orderId);
     }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void enqueueForOrderUnlessQueued(JobType type, long orderId) {
+        jdbc.update("""
+                INSERT INTO background_jobs (type, order_id) VALUES (?, ?)
+                ON CONFLICT ON CONSTRAINT uq_background_jobs_order_type DO NOTHING
+                """, type.name(), orderId);
+    }
 }

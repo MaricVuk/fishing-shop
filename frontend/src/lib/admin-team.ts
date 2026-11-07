@@ -109,6 +109,8 @@ export function describeAudit(entry: AuditEntry): string {
       return "Zaposleni je promenio lozinku.";
     case "JOB_RETRIED":
       return `Ponovo pokrenut posao ${jobTypeLabel(String(after.type))} za porudžbinu #${after.orderId} (posle ${before.attempts} neuspelih pokušaja).`;
+    case "JOB_RESOLVED":
+      return withReason(`Označen kao rešen posao ${jobTypeLabel(String(after.type))} za porudžbinu #${after.orderId}.`);
     default:
       return entry.action;
   }

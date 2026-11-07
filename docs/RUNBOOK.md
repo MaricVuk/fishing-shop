@@ -43,9 +43,9 @@ Posao odmah ide u `DEAD`, bez ponavljanja (`PermanentJobFailure` u `last_error`)
 
 Očekivano posle pada ili restarta backenda tokom slanja. Proveri da li je tada bio restart. Ako nije, a dupliranja ima više, to je greška u kodu: tabela dozvoljava samo jedan posao po porudžbini i tipu (`uq_background_jobs_order_type`), pa uzrok traži u slanju.
 
-### Račun nije napravljen
+### Račun nije napravljen ili nije poslat
 
-Admin pokazuje "Račun nije napravljen" kad je posao `ORDER_INVOICE` u stanju `DEAD`. Razlog je na **Admin → Poslovi**. Posle ispravke klikni "Ponovi", ili ručno:
+Račun i njegov mejl su dva posla. **"Račun nije napravljen"** u adminu znači da je `ORDER_INVOICE` u stanju `DEAD`: račun ne postoji. Razlog je na **Admin → Poslovi**, a posle ispravke klikni "Ponovi". Ručno:
 
 ```sql
 UPDATE background_jobs
@@ -53,4 +53,8 @@ SET status = 'PENDING', attempts = 0, finished_at = NULL, next_attempt_at = now(
 WHERE type = 'ORDER_INVOICE' AND order_id = ...;
 ```
 
-Ako je račun već izdat, ponovljen posao samo ponovo šalje isti PDF. Drugi račun za istu porudžbinu ne može da nastane (`uq_invoices_order`), a izdat račun ne može da se izmeni ni obriše (trigger). Pogrešan račun se ispravlja storno računom, koji još ne postoji (dug u [DECISIONS](DECISIONS.md)).
+Kad račun postoji, a kupac ga nije dobio, `DEAD` je posao **"Mejl sa računom"** (`ORDER_INVOICE_EMAIL`). Račun se može preuzeti sa stranice porudžbine i poslati ručno, pa se posao označi kao rešen ("Označi kao rešeno", uz razlog). Ponovljen posao računa ne pravi drugi račun (`uq_invoices_order`) i ne šalje mejl ponovo, a izdat račun ne može da se izmeni ni obriše (trigger). Pogrešan račun se ispravlja storno računom, koji još ne postoji (dug u [DECISIONS](DECISIONS.md)).
+
+### Posao koji ponavljanje ne može da popravi
+
+Na primer, adresa koju mejl server ne prihvata, ili stara porudžbina. Vlasnik na **Admin → Poslovi** klikne "Označi kao rešeno" i upiše šta je urađeno umesto toga. Posao prelazi u `RESOLVED`, ostaje u listi pod "Rešeni" i u audit logu, a upozorenje na Pregledu nestaje.

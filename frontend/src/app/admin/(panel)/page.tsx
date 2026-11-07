@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireEmployee } from "@/lib/admin-access";
-import { adminGet } from "@/lib/admin-api";
+import { AdminApiError, adminGet } from "@/lib/admin-api";
 import { jobsAlert } from "@/lib/admin-jobs";
 import { adminNavigation } from "@/lib/admin-nav";
-import type { AdminJobOverview } from "@/lib/admin-types";
+import type { AdminJobSummary } from "@/lib/admin-types";
 
 export const metadata: Metadata = { title: "Pregled" };
 
@@ -17,11 +17,20 @@ const DESCRIPTIONS: Record<string, string> = {
   "/admin/account": "Promena vaše lozinke.",
 };
 
+async function currentJobsAlert() {
+  try {
+    const summary = await adminGet<AdminJobSummary>("/api/admin/jobs/summary");
+    return summary ? jobsAlert(summary, new Date()) : null;
+  } catch (failure) {
+    if (failure instanceof AdminApiError) return null;
+    throw failure;
+  }
+}
+
 export default async function AdminHomePage() {
   const employee = await requireEmployee();
   const sections = adminNavigation(employee.role).filter((item) => item.href !== "/admin");
-  const jobs = employee.role === "OWNER" ? await adminGet<AdminJobOverview>("/api/admin/jobs?size=1") : null;
-  const alert = jobs ? jobsAlert(jobs, new Date()) : null;
+  const alert = employee.role === "OWNER" ? await currentJobsAlert() : null;
 
   return (
     <>

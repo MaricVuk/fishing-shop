@@ -112,3 +112,22 @@ describe("describeAudit for jobs", () => {
     expect(auditTypeFilterLabel("JOB")).toBe("Poslovi");
   });
 });
+
+describe("describeAudit for a resolved job", () => {
+  it("names the job and the reason", () => {
+    const entry = {
+      id: 2,
+      actorEmail: "vlasnik@ribolov.test",
+      action: "JOB_RESOLVED",
+      entityType: "JOB",
+      entityId: "13",
+      oldValue: { status: "DEAD", attempts: 1 },
+      newValue: { status: "RESOLVED", type: "ORDER_INVOICE_EMAIL", orderId: 7, reason: "Poslato ručno." },
+      createdAt: "2026-11-07T10:00:00Z",
+    };
+    expect(describeAudit(entry)).toBe("Označen kao rešen posao Mejl sa računom za porudžbinu #7. Poslato ručno.");
+    expect(describeAudit({ ...entry, newValue: { ...entry.newValue, reason: null } })).toBe(
+      "Označen kao rešen posao Mejl sa računom za porudžbinu #7.",
+    );
+  });
+});
