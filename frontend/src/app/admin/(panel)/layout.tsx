@@ -1,4 +1,5 @@
 import { AdminHeader } from "@/components/admin/admin-header";
+import { LiveEvents } from "@/components/admin/live-events";
 import { requireEmployee } from "@/lib/admin-access";
 
 export default async function PanelLayout({ children }: LayoutProps<"/admin">) {
@@ -14,6 +15,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/admin">) {
       >
         {children}
       </main>
+      <LiveEvents />
     </>
   );
 }
