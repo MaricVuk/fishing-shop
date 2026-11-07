@@ -1,0 +1,79 @@
+name: fishing-shop-prod
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    shm_size: 256mb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      SHOP_OWNER_EMAIL: ${SHOP_OWNER_EMAIL:-}
+      SHOP_OWNER_PASSWORD: ${SHOP_OWNER_PASSWORD:-}
+      SHOP_OWNER_NAME: ${SHOP_OWNER_NAME:-}
+      MAIL_HOST: ${MAIL_HOST:?set MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      SHOP_MAIL_FROM: ${SHOP_MAIL_FROM:?set SHOP_MAIL_FROM}
+      SHOP_SELLER_NAME: ${SHOP_SELLER_NAME:?set SHOP_SELLER_NAME}
+      SHOP_SELLER_ADDRESS: ${SHOP_SELLER_ADDRESS:?set SHOP_SELLER_ADDRESS}
+      SHOP_SELLER_TAX_ID: ${SHOP_SELLER_TAX_ID:?set SHOP_SELLER_TAX_ID}
+      SHOP_SELLER_REGISTRATION_NUMBER: ${SHOP_SELLER_REGISTRATION_NUMBER:?set SHOP_SELLER_REGISTRATION_NUMBER}
+      SHOP_SELLER_BANK_ACCOUNT: ${SHOP_SELLER_BANK_ACCOUNT:?set SHOP_SELLER_BANK_ACCOUNT}
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080 &&
+          printf 'GET /actuator/health HTTP/1.0\r\n\r\n' >&3 &&
+          head -n 1 <&3 | grep -q ' 200 '
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/categories').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  pgdata:

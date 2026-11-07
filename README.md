@@ -104,7 +104,7 @@ Profil `dev` pravi i po jedan nalog zaposlenog za svaku ulogu. Ovi nalozi postoj
 
 Bez profila `dev` prvi vlasnik se pravi iz `SHOP_OWNER_EMAIL` i `SHOP_OWNER_PASSWORD` (najmanje 12 znakova), i to samo dok u bazi nema nijednog zaposlenog. Prijava radi preko sesije u bazi ([ADR 0004](docs/adr/0004-employee-login-with-server-sessions.md)).
 
-Fajl `.env` čita samo `docker compose`. Backend čita promenljive okruženja (npr. `set -a; source .env; set +a` pre pokretanja), a frontend čita `frontend/.env.local` (`cp frontend/.env.example frontend/.env.local`). Adresa backenda `BACKEND_URL` za `/api/*` proxy se ugrađuje pri build-u, pa se za produkciju zadaje pri `npm run build`.
+Fajl `.env` čita samo `docker compose`. Backend čita promenljive okruženja (npr. `set -a; source .env; set +a` pre pokretanja), a frontend čita `frontend/.env.local` (`cp frontend/.env.example frontend/.env.local`). Adresa backenda `BACKEND_URL` za `/api/*` proxy (`frontend/src/proxy.ts`) se čita pri pokretanju, pa jedna slika radi u svakom okruženju.
 
 Testovi (zahtevaju Docker, koriste Testcontainers sa pravim PostgreSQL-om):
 
@@ -112,6 +112,28 @@ Testovi (zahtevaju Docker, koriste Testcontainers sa pravim PostgreSQL-om):
 (cd backend && ./mvnw verify)
 (cd frontend && npm test)
 ```
+
+### Ceo sistem jednom komandom (demo)
+
+Potreban je samo Docker. Komanda gradi obe slike, podiže bazu, backend, frontend i Mailpit, i puni katalog demo proizvodima (profil `dev` ostaje isključen):
+
+```bash
+docker compose --env-file demo.env -f compose.prod.yml -f compose.demo.yml up --build -d --wait
+```
+
+Shop je na `http://localhost:3100`, admin na `/admin` (isti demo nalozi kao gore), a mejlovi koje shop šalje u Mailpitu na `http://localhost:8026`. Provera da sve radi:
+
+```bash
+scripts/smoke.sh
+```
+
+Zaustavljanje (podaci ostaju u volumenu `fishing-shop-prod_pgdata`):
+
+```bash
+docker compose --env-file demo.env -f compose.prod.yml -f compose.demo.yml down
+```
+
+`demo.env` ima javne demo vrednosti i nalozi sa poznatim lozinkama, pa se ovaj način pokreće samo na lokalnoj mašini (portovi su vezani za `127.0.0.1`). `compose.prod.yml` sam traži prave vrednosti za bazu, mejl server i podatke prodavca (`.env.example`) i bez njih ne startuje. Pravi deploy je odložen ([ADR 0008](docs/adr/0008-deploy-postponed.md)).
 
 ## Struktura repoa
 
@@ -123,6 +145,8 @@ fishing-shop/
 ├── docs/               plan razvoja i zapisi odluka
 ├── .github/workflows/  CI
 ├── docker-compose.yml  PostgreSQL i Mailpit za razvoj
+├── compose.prod.yml    baza, backend i frontend iz slika; compose.demo.yml i demo.env dodaju demo podatke i Mailpit
+├── scripts/            smoke.sh: provera da pokrenut sistem radi
 ├── .env.example        razvojne vrednosti env varijabli
 └── LICENSE             MIT licenca
 ```

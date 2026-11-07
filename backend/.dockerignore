@@ -1,0 +1,6 @@
+target
+perf/k6/results
+.idea
+*.iml
+Dockerfile
+.dockerignore
