@@ -12,6 +12,7 @@ import rs.fishingshop.audit.AuditActor;
 import rs.fishingshop.audit.AuditEntityType;
 import rs.fishingshop.audit.AuditService;
 import rs.fishingshop.catalog.PageResponse;
+import rs.fishingshop.invoices.CreditNoteService;
 import rs.fishingshop.invoices.InvoiceService;
 import rs.fishingshop.invoices.StoredInvoice;
 import rs.fishingshop.jobs.JobQueue;
@@ -34,9 +35,11 @@ class AdminOrderService {
     private final JdbcTemplate jdbc;
     private final JobQueue jobs;
     private final InvoiceService invoices;
+    private final CreditNoteService creditNotes;
 
     AdminOrderService(AdminOrderRepository rows, CustomerOrderRepository orders, StockService stock,
-            AuditService audit, JdbcTemplate jdbc, JobQueue jobs, InvoiceService invoices) {
+            AuditService audit, JdbcTemplate jdbc, JobQueue jobs, InvoiceService invoices,
+            CreditNoteService creditNotes) {
         this.rows = rows;
         this.orders = orders;
         this.stock = stock;
@@ -44,6 +47,7 @@ class AdminOrderService {
         this.jdbc = jdbc;
         this.jobs = jobs;
         this.invoices = invoices;
+        this.creditNotes = creditNotes;
     }
 
     @Transactional(readOnly = true)
@@ -58,12 +62,18 @@ class AdminOrderService {
     @Transactional(readOnly = true)
     AdminOrderDetail detail(Long id) {
         CustomerOrder order = orders.findWithItems(id).orElseThrow(() -> new OrderNotFoundException(id));
-        return AdminOrderDetail.from(order, invoices.summaryFor(id), audit.history(AuditEntityType.ORDER, id));
+        return AdminOrderDetail.from(order, invoices.summaryFor(id), creditNotes.summaryFor(id),
+                audit.history(AuditEntityType.ORDER, id));
     }
 
     @Transactional(readOnly = true)
     StoredInvoice invoice(Long id) {
         return invoices.findForOrder(id).orElseThrow(() -> new InvoiceNotFoundException(id));
+    }
+
+    @Transactional(readOnly = true)
+    StoredInvoice creditNote(Long id) {
+        return creditNotes.findForOrder(id).orElseThrow(() -> new CreditNoteNotFoundException(id));
     }
 
     @Transactional
@@ -81,6 +91,9 @@ class AdminOrderService {
         if (next == OrderStatus.CONFIRMED) {
             jobs.enqueueForOrder(JobType.ORDER_INVOICE, id);
         }
+        if (next == OrderStatus.CANCELLED && invoices.isIssued(id)) {
+            jobs.enqueueForOrder(JobType.ORDER_CREDIT_NOTE, id);
+        }
 
         Map<String, Object> after = new LinkedHashMap<>();
         after.put("status", next);
@@ -93,7 +106,8 @@ class AdminOrderService {
         audit.record(actor, AuditAction.ORDER_STATUS_CHANGED, AuditEntityType.ORDER, id,
                 Map.of("status", current), after);
 
-        return AdminOrderDetail.from(order, invoices.summaryFor(id), audit.history(AuditEntityType.ORDER, id));
+        return AdminOrderDetail.from(order, invoices.summaryFor(id), creditNotes.summaryFor(id),
+                audit.history(AuditEntityType.ORDER, id));
     }
 
     private static String trimToNull(String value) {

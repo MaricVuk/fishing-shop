@@ -42,7 +42,7 @@ class DatabaseRolesTests {
     @Test
     void appCannotUpdateDeleteOrTruncateTheAppendOnlyTables() throws SQLException {
         try (Connection c = RolesDatabase.app()) {
-            for (String table : List.of("audit_log", "invoices", "stock_movements")) {
+            for (String table : List.of("audit_log", "invoices", "credit_notes", "stock_movements")) {
                 assertDenied(c, "UPDATE " + table + " SET id = id WHERE FALSE");
                 assertDenied(c, "DELETE FROM " + table + " WHERE FALSE");
                 assertDenied(c, "TRUNCATE " + table);
@@ -80,7 +80,7 @@ class DatabaseRolesTests {
     void appCanUpdateOnlyTheTablesTheApplicationChanges() throws SQLException {
         try (Connection c = RolesDatabase.app()) {
             assertThat(tablesWithPrivilege(c, "UPDATE")).containsExactlyInAnyOrder(
-                    "background_jobs", "employees", "inventory", "invoice_counters", "orders",
+                    "background_jobs", "credit_note_counters", "employees", "inventory", "invoice_counters", "orders",
                     "spring_session", "spring_session_attributes");
             assertThat(tablesWithPrivilege(c, "DELETE"))
                     .containsExactlyInAnyOrder("spring_session", "spring_session_attributes");

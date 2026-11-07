@@ -37,6 +37,8 @@ describe("labels", () => {
     expect(JOB_STATUSES.map(jobStatusLabel)).toEqual(["Čeka", "Završen", "Odustao", "Rešen"]);
     expect(jobTypeLabel("ORDER_CONFIRMATION_EMAIL")).toBe("Potvrda porudžbine");
     expect(jobTypeLabel("ORDER_INVOICE")).toBe("Račun");
+    expect(jobTypeLabel("ORDER_CREDIT_NOTE")).toBe("Storno računa");
+    expect(jobTypeLabel("ORDER_CREDIT_NOTE_EMAIL")).toBe("Mejl sa stornom");
     expect(jobTypeLabel("ORDER_INVOICE_EMAIL")).toBe("Mejl sa računom");
   });
 

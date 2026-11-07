@@ -70,7 +70,7 @@ SET status = 'PENDING', attempts = 0, finished_at = NULL, next_attempt_at = now(
 WHERE type = 'ORDER_INVOICE' AND order_id = ...;
 ```
 
-Kad račun postoji, a kupac ga nije dobio, `DEAD` je posao **"Mejl sa računom"** (`ORDER_INVOICE_EMAIL`). Račun se može preuzeti sa stranice porudžbine i poslati ručno, pa se posao označi kao rešen ("Označi kao rešeno", uz razlog). Ponovljen posao računa ne pravi drugi račun (`uq_invoices_order`) i ne šalje mejl ponovo, a izdat račun ne može da se izmeni ni obriše (trigger). Pogrešan račun se ispravlja storno računom, koji još ne postoji (dug u [DECISIONS](DECISIONS.md)).
+Kad račun postoji, a kupac ga nije dobio, `DEAD` je posao **"Mejl sa računom"** (`ORDER_INVOICE_EMAIL`). Račun se može preuzeti sa stranice porudžbine i poslati ručno, pa se posao označi kao rešen ("Označi kao rešeno", uz razlog). Ponovljen posao računa ne pravi drugi račun (`uq_invoices_order`) i ne šalje mejl ponovo, a izdat račun ne može da se izmeni ni obriše (trigger). Pogrešan račun se poništava storno računom (vidi "Storno račun" niže).
 
 ### Posao koji ponavljanje ne može da popravi
 
@@ -127,4 +127,16 @@ FROM orders WHERE customer_email = '...' ORDER BY id DESC LIMIT 10;
 ```
 
 Višak se otkazuje u adminu (vraća zalihu, ostaje u audit logu).
+
+### Storno račun
+
+Nastaje sam kad se otkaže potvrđena porudžbina čiji je račun izdat: posao **"Storno računa"** (`ORDER_CREDIT_NOTE`) izdaje dokument `ST-{godina}-{broj}`, a **"Mejl sa stornom"** (`ORDER_CREDIT_NOTE_EMAIL`) ga šalje kupcu. Porudžbina otkazana pre nego što je račun izdat ne dobija ni račun ni storno. Kad je jedan od ta dva posla `DEAD`, razlog je na **Admin → Poslovi**, a posle ispravke klikni "Ponovi"; ponovljen posao ne pravi drugi storno (`uq_credit_notes_invoice`). Storno se, kao i račun, ne može izmeniti ni obrisati (trigger).
+
+```sql
+SELECT o.id, i.number AS invoice, c.number AS credit_note, c.total
+FROM orders o JOIN invoices i ON i.order_id = o.id LEFT JOIN credit_notes c ON c.invoice_id = i.id
+WHERE o.status = 'CANCELLED';
+```
+
+Red sa računom i bez storna znači da posao storna još čeka ili je `DEAD`.
 

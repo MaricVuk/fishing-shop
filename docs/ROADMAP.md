@@ -112,7 +112,7 @@ Plan potvrđen 2026-11-07. Pravi deploy je odložen do dana kad se softver bude 
 - [x] 6.5 Pun CSP sa nonce-om
 - [x] 6.6 Idempotentni ključ za porudžbinu
 - [x] 6.7 Nasumični javni token porudžbine
-- [ ] 6.8 Storno račun
+- [x] 6.8 Storno račun
 - [ ] 6.9 UI revizija (`impeccable`, `emil-design-eng`), vizuelnu potvrdu radi autor
 - [ ] 6.10 End-to-end test cele kupovine (Playwright) u CI-ju
 - [ ] 6.11 Pregled koda cele faze i zatvaranje

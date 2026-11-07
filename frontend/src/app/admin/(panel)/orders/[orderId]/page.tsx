@@ -6,7 +6,7 @@ import { OrderStatusActions } from "@/components/admin/order-status-actions";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { accessTo } from "@/lib/admin-access";
 import { adminGet } from "@/lib/admin-api";
-import { describeChange, describeInvoice } from "@/lib/admin-orders";
+import { describeChange, describeCreditNote, describeInvoice } from "@/lib/admin-orders";
 import { formatDateTime } from "@/lib/admin-stock";
 import type { AdminOrderDetail } from "@/lib/admin-types";
 import { formatPrice } from "@/lib/format";
@@ -22,6 +22,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[or
   const order = await adminGet<AdminOrderDetail>(`/api/admin/orders/${orderId}`);
   if (!order) notFound();
   const invoice = describeInvoice(order.id, order.invoice);
+  const creditNote = describeCreditNote(order.id, order.creditNote);
 
   return (
     <>
@@ -109,6 +110,21 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[or
                 >
                   Preuzmi PDF
                 </a>
+              )}
+              {creditNote && (
+                <div className="mt-4 border-t pt-4">
+                  <p className="font-medium tabular-nums">{creditNote.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{creditNote.text}</p>
+                  {creditNote.href && (
+                    <a
+                      href={creditNote.href}
+                      download
+                      className="mt-3 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Preuzmi storno (PDF)
+                    </a>
+                  )}
+                </div>
               )}
             </section>
           )}

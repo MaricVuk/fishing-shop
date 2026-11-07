@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ORDER_STATUSES,
   describeChange,
+  describeCreditNote,
   describeInvoice,
   ordersHref,
   parseOrderQuery,
@@ -99,3 +100,26 @@ describe("describeInvoice", () => {
     expect(describeInvoice(7, { status: "NONE", number: null, issuedAt: null })).toBeNull();
   });
 });
+
+describe("describeCreditNote", () => {
+  it("links an issued credit note to its PDF", () => {
+    expect(
+      describeCreditNote(7, { status: "ISSUED", number: "ST-2026-000001", issuedAt: "2026-11-06T19:49:22Z" }),
+    ).toEqual({
+      title: "ST-2026-000001",
+      text: "Storno izdat 6. 11. 2026. 20:49",
+      href: "/api/admin/orders/7/credit-note",
+    });
+  });
+
+  it("explains a pending and a failed credit note and hides an order without one", () => {
+    expect(describeCreditNote(7, { status: "PENDING", number: null, issuedAt: null })?.title).toBe(
+      "Storno se pravi",
+    );
+    expect(describeCreditNote(7, { status: "FAILED", number: null, issuedAt: null })?.title).toBe(
+      "Storno nije napravljen",
+    );
+    expect(describeCreditNote(7, { status: "NONE", number: null, issuedAt: null })).toBeNull();
+  });
+});
+

@@ -83,6 +83,7 @@ export type AdminOrderDetail = {
   }[];
   allowedStatuses: OrderStatus[];
   invoice: InvoiceSummary;
+  creditNote: InvoiceSummary;
   history: AuditEntry[];
 };
 
@@ -101,7 +102,12 @@ export type AdminEmployee = {
 
 export type JobStatus = "PENDING" | "DONE" | "DEAD" | "RESOLVED";
 
-export type JobType = "ORDER_CONFIRMATION_EMAIL" | "ORDER_INVOICE" | "ORDER_INVOICE_EMAIL";
+export type JobType =
+  | "ORDER_CONFIRMATION_EMAIL"
+  | "ORDER_INVOICE"
+  | "ORDER_INVOICE_EMAIL"
+  | "ORDER_CREDIT_NOTE"
+  | "ORDER_CREDIT_NOTE_EMAIL";
 
 export type AdminJob = {
   id: number;
