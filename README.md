@@ -52,6 +52,19 @@ Spring Boot je jedini backend i drži celu poslovnu logiku (zalihe, porudžbine,
 
 Trenutno radi: katalog sa pretragom, filterom po kategoriji, sortiranjem i paginacijom, stranica proizvoda sa varijantama i dostupnošću, korpa i slanje porudžbine (bez plaćanja). Zaliha se proverava i skida pri porudžbini pod zaključavanjem reda, pa ni 50 istovremenih kupaca ne mogu da kupe više nego što ima, a svaka promena zalihe ostaje u istoriji ([ADR 0003](docs/adr/0003-pessimistic-locking-for-stock.md)). Zaposleni se prijavljuju na `/admin` (sesija u bazi, uloge vlasnik, prodavac i magacioner), vode porudžbine i magacin, a svaka izmena ostaje u audit logu koji se ne može menjati ni brisati ([ADR 0004](docs/adr/0004-employee-login-with-server-sessions.md), [ADR 0005](docs/adr/0005-append-only-audit-log.md)). Kupac dobija mejl potvrde, a kad prodavac potvrdi porudžbinu nastaje PDF račun sa brojem bez rupa i stiže mejlom. Mejlovi i računi idu kroz red poslova u Postgresu sa ponovnim pokušajima, a vlasnik u adminu vidi poslove koji su odustali i ponovo ih pokreće ([ADR 0006](docs/adr/0006-job-queue-in-postgres.md)). Vlasnik u adminu vidi prodaju po danima, nedeljama i mesecima sa grafikonom i najprodavanije artikle, a vlasnik i magacioner vide varijante kojima ponestaje zalihe. Nova porudžbina i prodat poslednji komad pojavljuju se u adminu odmah, bez osvežavanja stranice. Pregled u adminu je dashboard po ulozi: vlasnik vidi prihod i porudžbine koje čekaju, prodavac porudžbine, a magacioner niske zalihe. Izveštaji za 5 godina (547k porudžbina, 1M stavki) traju ispod pola sekunde bez keša ([prodaja](docs/perf/sales-report.md), [najprodavaniji](docs/perf/product-reports.md)).
 
+## Opterećenje
+
+k6 (kroz Docker) nad bazom sa 547.500 porudžbina i 1M stavki, jedna instanca backenda, sve na jednoj mašini ([detalji i zamke](docs/perf/load-test.md)):
+
+| Scenario | Opterećenje | Zahteva/s | p95 | Greške |
+|---|---|---|---|---|
+| Katalog | 50 korisnika | 3.000 | 35,5 ms | 0 % |
+| Porudžbine, jedna varijanta sa 100 komada | 50 korisnika | 1.019 | 85,6 ms | 0 % |
+| Porudžbine, rasute po katalogu | 30 korisnika | 630 | 72,2 ms | 0 % |
+| Izveštaji (pregled, prodaja, najprodavaniji, niske zalihe) | 20 korisnika bez pauze | 41 | 630 ms | 0 % |
+
+Pod 50 istovremenih kupaca za varijantu sa 100 komada prošlo je tačno **100** porudžbina (30.562 je dobilo `422`), zaliha je ostala 0, a baza nema nijedan red ispod nule.
+
 Detalji svake faze su u [planu razvoja](docs/ROADMAP.md).
 
 ## Pokretanje

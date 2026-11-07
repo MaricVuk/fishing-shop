@@ -10,6 +10,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shop_dev_password}
     ports:
       - "127.0.0.1:5432:5432"   # localhost only, the dev password is weak
+    # Docker's default 64 MB /dev/shm is too small for parallel queries: concurrent reports failed with
+    # "could not resize shared memory segment" (docs/perf/load-test.md)
+    shm_size: 256mb
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

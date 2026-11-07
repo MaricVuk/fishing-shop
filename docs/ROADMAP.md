@@ -90,7 +90,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 **Tehničke stvari na koje treba obratiti pažnju**
 - Agregacioni SQL upiti, indeksi, `EXPLAIN ANALYZE`
 - Keširanje i invalidacija: bez keša dok merenje ne pokaže potrebu, zatim Caffeine sa TTL-om (odluka u [DECISIONS.md](DECISIONS.md))
-- Opterećenje: bar jedan load test (k6 ili Gatling) sa brojevima u README-u
+- Opterećenje: bar jedan load test (k6 ili Gatling) sa brojevima u README-u (urađeno u 5.6, [merenja](perf/load-test.md))
 
 ## Kroz sve faze: kvalitet i inženjerske prakse
 
