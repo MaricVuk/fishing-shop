@@ -52,7 +52,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-4 rounded-xl border p-5">
+    <form method="post" onSubmit={submit} noValidate className="flex flex-col gap-4 rounded-xl border p-5">
       <h2 className="text-lg font-semibold">Promena lozinke</h2>
       <TextField id="current-password" label="Trenutna lozinka" type="password" value={current} onChange={(v) => { setCurrent(v); setErrors((e) => ({ ...e, current: undefined })); }} error={errors.current} autoComplete="current-password" maxLength={200} />
       <TextField id="new-password" label="Nova lozinka" type="password" value={next} onChange={(v) => { setNext(v); setErrors((e) => ({ ...e, next: undefined })); }} error={errors.next} autoComplete="new-password" maxLength={64} hint="Najmanje 12 znakova." />

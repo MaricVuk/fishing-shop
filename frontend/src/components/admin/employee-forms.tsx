@@ -130,7 +130,7 @@ export function NewEmployeeForm() {
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-4 self-start rounded-xl border p-5">
+    <form method="post" onSubmit={submit} noValidate className="flex flex-col gap-4 self-start rounded-xl border p-5">
       <h2 className="text-lg font-semibold">Dodaj zaposlenog</h2>
       <TextField id="new-name" label="Ime i prezime" value={values.fullName} onChange={(v) => update("fullName", v)} error={errors.fullName} maxLength={150} autoComplete="off" />
       <TextField id="new-email" label="Email" type="email" value={values.email} onChange={(v) => update("email", v)} error={errors.email} maxLength={100} autoComplete="off" />
@@ -250,7 +250,7 @@ export function PasswordResetForm({ employeeId }: { employeeId: number }) {
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-4 rounded-xl border p-5">
+    <form method="post" onSubmit={submit} noValidate className="flex flex-col gap-4 rounded-xl border p-5">
       <h2 className="text-lg font-semibold">Nova lozinka</h2>
       <TextField
         id="reset-password"

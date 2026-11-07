@@ -89,6 +89,8 @@ shop:
     registration-number: ${SHOP_SELLER_REGISTRATION_NUMBER}
     bank-account: ${SHOP_SELLER_BANK_ACCOUNT}
     vat-rate: 20
+  reports:
+    low-stock-threshold: 3
   jobs:
     worker-enabled: true
     poll-interval: 5s

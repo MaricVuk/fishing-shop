@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Forbidden } from "@/components/admin/forbidden";
+import { BestSellerTable, LowStockTable } from "@/components/admin/report-tables";
 import { SalesChart } from "@/components/admin/sales-chart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { accessTo } from "@/lib/admin-access";
 import { AdminApiError, adminGet } from "@/lib/admin-api";
 import {
+  BEST_SELLERS_LIMIT,
   GRANULARITIES,
+  bestSellersApiPath,
   bucketTitle,
   formatAmount,
   formatCount,
@@ -19,20 +22,51 @@ import {
   salesApiPath,
   shopToday,
 } from "@/lib/admin-reports";
-import type { SalesReport } from "@/lib/admin-types";
+import type { BestSellerReport, LowStockReport, SalesReport } from "@/lib/admin-types";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Izveštaji" };
 
-async function loadReport(path: string): Promise<SalesReport | "invalid"> {
+async function loadReport<T>(path: string): Promise<T | "invalid"> {
   try {
-    const report = await adminGet<SalesReport>(path);
+    const report = await adminGet<T>(path);
     if (!report) throw new AdminApiError(404, path);
     return report;
   } catch (failure) {
     if (failure instanceof AdminApiError && failure.status === 400) return "invalid";
     throw failure;
   }
+}
+
+async function loadLowStock(): Promise<LowStockReport> {
+  const report = await adminGet<LowStockReport>("/api/admin/reports/low-stock");
+  if (!report) throw new AdminApiError(404, "/api/admin/reports/low-stock");
+  return report;
+}
+
+function LowStockSection({ report }: { report: LowStockReport }) {
+  return (
+    <section aria-labelledby="low-stock-heading" className="mt-10">
+      <h2 id="low-stock-heading" className="text-xl font-semibold">
+        Niske zalihe
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Varijante u prodaji sa {formatCount(report.threshold)} ili manje komada, najmanje prvo.
+      </p>
+      {report.items.length === 0 ? (
+        <p className="mt-4 rounded-xl bg-muted px-6 py-10 text-muted-foreground">Nijednoj varijanti ne ponestaje zalihe.</p>
+      ) : (
+        <>
+          <LowStockTable items={report.items} />
+          {report.total > report.items.length && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Prikazano je prvih {formatCount(report.items.length)} od {formatCount(report.total)}.
+            </p>
+          )}
+        </>
+      )}
+    </section>
+  );
 }
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -46,11 +80,25 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 export default async function ReportsPage({ searchParams }: PageProps<"/admin/reports">) {
-  const { allowed } = await accessTo("/admin/reports");
+  const { employee, allowed } = await accessTo("/admin/reports");
   if (!allowed) return <Forbidden />;
 
+  if (employee.role !== "OWNER") {
+    const lowStock = await loadLowStock();
+    return (
+      <>
+        <h1 className="text-3xl font-bold">Izveštaji</h1>
+        <LowStockSection report={lowStock} />
+      </>
+    );
+  }
+
   const query = parseReportQuery(await searchParams);
-  const report = await loadReport(salesApiPath(query));
+  const [report, bestSellers, lowStock] = await Promise.all([
+    loadReport<SalesReport>(salesApiPath(query)),
+    loadReport<BestSellerReport>(bestSellersApiPath(query)),
+    loadLowStock(),
+  ]);
   const presets = reportPresets(shopToday(new Date()));
   const shown = report === "invalid" ? query : { from: report.from, to: report.to, granularity: report.granularity };
 
@@ -172,6 +220,24 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
           )}
         </section>
       )}
+
+      {bestSellers !== "invalid" && (
+        <section aria-labelledby="best-sellers-heading" className="mt-10">
+          <h2 id="best-sellers-heading" className="text-xl font-semibold">
+            Najprodavaniji artikli
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Prvih {BEST_SELLERS_LIMIT} po broju prodatih komada u istom periodu. Prihod je po cenama iz porudžbina.
+          </p>
+          {bestSellers.items.length === 0 ? (
+            <p className="mt-4 rounded-xl bg-muted px-6 py-10 text-muted-foreground">U ovom periodu ništa nije prodato.</p>
+          ) : (
+            <BestSellerTable items={bestSellers.items} />
+          )}
+        </section>
+      )}
+
+      <LowStockSection report={lowStock} />
     </>
   );
 }

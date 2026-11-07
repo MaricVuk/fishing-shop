@@ -37,7 +37,7 @@ export function LoginForm({ next }: { next: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-5">
+    <form method="post" onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-5">
       {error && (
         <div role="alert" className="rounded-xl border border-destructive/60 px-4 py-3 text-sm">
           {error}

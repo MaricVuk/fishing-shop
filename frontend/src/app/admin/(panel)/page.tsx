@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Pregled" };
 const DESCRIPTIONS: Record<string, string> = {
   "/admin/orders": "Nove porudžbine, potvrda, slanje i otkazivanje.",
   "/admin/stock": "Stanje po varijanti, prijem robe, popis i istorija kretanja.",
-  "/admin/reports": "Prodaja po danima, nedeljama i mesecima.",
+  "/admin/reports": "Prodaja, najprodavaniji artikli i niske zalihe.",
   "/admin/employees": "Nalozi zaposlenih i njihove uloge.",
   "/admin/jobs": "Mejlovi i računi koji se šalju u pozadini.",
   "/admin/audit": "Ko je šta promenio i kada.",
@@ -53,7 +53,11 @@ export default async function AdminHomePage() {
               className="flex h-full flex-col gap-1 rounded-xl border p-5 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
               <span className="text-lg font-semibold">{section.label}</span>
-              <span className="text-sm text-muted-foreground">{DESCRIPTIONS[section.href]}</span>
+              <span className="text-sm text-muted-foreground">
+                {section.href === "/admin/reports" && employee.role === "WAREHOUSE"
+                  ? "Varijante kojima ponestaje zalihe."
+                  : DESCRIPTIONS[section.href]}
+              </span>
             </Link>
           </li>
         ))}

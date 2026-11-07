@@ -31,6 +31,10 @@ Prvo rešenje je mereno samo kroz `EXPLAIN ANALYZE`, koji meri svaki red i sam d
 2. **JIT koji košta više nego što donosi.** Posle prve ispravke planer i dalje procenjuje 525k grupa umesto 61 (ne zna koliko meseci ima u 5 godina), pa cena prelazi `jit_above_cost` i Postgres kompajlira upit: `JIT: Timing: ... Total 300.791 ms` na upitu od 780 ms. Rešenje je `SET LOCAL jit = off` samo u transakciji izveštaja, bez izmene podešavanja baze.
 3. **Indeks nije potreban.** Kraći periodi već koriste `idx_orders_created` (`Bitmap Heap Scan`). Period od 5 godina čita 96 % tabele, pa je `Seq Scan` ispravan izbor, a ostatak vremena odlazi na pretvaranje vremena u beogradsko i grupisanje po mesecu za svaki red. Pokrivajući indeks `(created_at) INCLUDE (status, total)` ne smanjuje taj rad, pa nije dodat.
 
+## Dopuna iz 5.3
+
+Merenje najprodavanijih ([product-reports.md](product-reports.md)) je otkrilo da i ovaj upit kroz API ponekad dobija generički plan pripremljene naredbe. Od 5.3 oba izveštaja koriste `SET LOCAL plan_cache_mode = force_custom_plan` (`ReportSession`), pa kroz API sada traju: 30 dana 25 ms, godina po nedeljama 105 ms, 5 godina po mesecima 355 ms.
+
 ## Odluka
 
 Bez indeksa i bez keša. Najgori slučaj, ceo period od 5 godina, kroz API traje oko 0,5 s, što je na granici praga iz DECISIONS (500 ms). Taj izveštaj otvara jedan vlasnik povremeno, a uobičajeni periodi traju 40 do 150 ms. Ako obim poraste, sledeći korak je noćna zbirna tabela po danu, samo za zatvorene dane.

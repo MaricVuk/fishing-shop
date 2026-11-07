@@ -33,6 +33,23 @@ class SchemaConstraintsTests extends PostgresIntegrationTest {
     }
 
     @Test
+    void anOrderCannotListTheSameVariantTwice() {
+        long variantId = insertVariant("SKU-TWICE", "{\"length\":\"3.0m\"}");
+        long orderId = jdbc.queryForObject("""
+                INSERT INTO orders (customer_name, customer_email, shipping_address, total)
+                VALUES ('Test Kupac', 'kupac@example.com', 'Ulica 1', 200.00) RETURNING id
+                """, Long.class);
+        String item = """
+                INSERT INTO order_items (order_id, variant_id, product_name, sku, unit_price, quantity)
+                VALUES (?, ?, 'Stap', 'SKU-TWICE', 100.00, 1)
+                """;
+        jdbc.update(item, orderId, variantId);
+
+        assertThatThrownBy(() -> jdbc.update(item, orderId, variantId))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     void variantAttributesMustBeJsonObject() {
         long productId = insertProduct();
 
@@ -63,7 +80,7 @@ class SchemaConstraintsTests extends PostgresIntegrationTest {
         List<String> indexes = jdbc.queryForList(
                 "SELECT indexname FROM pg_indexes WHERE schemaname = 'public'", String.class);
 
-        assertThat(indexes).contains("idx_categories_parent", "idx_order_items_variant");
+        assertThat(indexes).contains("idx_categories_parent", "idx_order_items_variant", "uq_order_items_order_variant");
     }
 
     private long insertProduct() {
