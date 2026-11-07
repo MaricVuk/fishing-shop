@@ -8,9 +8,15 @@ Poslovi su redovi u tabeli `background_jobs` ([ADR 0006](adr/0006-job-queue-in-p
 
 ### Nadzor bez admina (od 5.1)
 
-Vlasnik (sa kolačićem sesije) ili sistem za nadzor čita stanje direktno sa backenda; `/actuator` ne ide kroz Next proxy.
+Actuator radi na posebnom portu (8081) i sluša samo na `127.0.0.1` unutar backend procesa, bez prijave. Glavni port (8080) ga ne služi, a `/actuator` ne ide ni kroz Next proxy. Lokalno (`mvnw spring-boot:run`) je `http://localhost:8081/actuator/...`. U kontejneru se čita iznutra, npr. sa hosta:
 
-- `GET /actuator/health`: za vlasnika komponenta `jobs` ima `pending`, `dead`, `done`, `resolved`, `oldestOverdueSeconds` i `workerLastPollSecondsAgo`. Uvek je `UP`, pa se uzbuna ne zasniva na njoj.
+```bash
+docker compose --env-file demo.env -f compose.prod.yml -f compose.demo.yml exec -T backend bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081; printf "GET /actuator/health HTTP/1.0\r\n\r\n" >&3; cat <&3'
+```
+
+Zamena `/actuator/health` sa `/actuator/metrics/shop.jobs?tag=status:DEAD` daje broj poslova. Adresa i port se menjaju promenljivama `MANAGEMENT_SERVER_ADDRESS` i `MANAGEMENT_SERVER_PORT`; ako se adresa otvori ka mreži, detalji health-a i metrike postaju javni, jer na tom portu nema prijave.
+
+- `GET /actuator/health`: komponenta `jobs` ima `pending`, `dead`, `done`, `resolved`, `oldestOverdueSeconds` i `workerLastPollSecondsAgo`. Uvek je `UP`, pa se uzbuna ne zasniva na njoj.
 - `GET /actuator/metrics/shop.jobs?tag=status:DEAD`: broj odustalih poslova. Uzbuna kad je veći od 0.
 - `GET /actuator/metrics/shop.jobs.worker.last.poll`: sekunde od poslednjeg uspešnog prolaza workera (`NaN` dok worker nije prošao nijednom). Više od nekoliko minuta znači da worker ne radi ili da baza ne odgovara.
 - `GET /actuator/metrics/shop.jobs.oldest.overdue`: koliko čeka najstariji posao kojem je došlo vreme. Duže od 10 minuta znači da worker ne stiže.

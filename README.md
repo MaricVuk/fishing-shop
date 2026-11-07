@@ -86,7 +86,7 @@ npm install
 npm run dev
 
 # provera
-curl http://localhost:8080/actuator/health
+curl http://localhost:8081/actuator/health
 curl "http://localhost:8080/api/products?size=3&sort=price_desc"
 ```
 

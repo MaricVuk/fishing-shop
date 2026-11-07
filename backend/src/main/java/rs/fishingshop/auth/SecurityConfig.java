@@ -2,8 +2,10 @@ package rs.fishingshop.auth;
 
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,6 +16,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -36,6 +39,17 @@ class SecurityConfig {
     private static final String INVALID_LOGIN = "Invalid email or password";
 
     @Bean
+    @Order(1)
+    SecurityFilterChain managementSecurityFilterChain(HttpSecurity http) {
+        http
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        return http.build();
+    }
+
+    @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http, ProblemWriter problems, LoginAttemptLimiter limiter, AuthProperties properties,
             OrderRateLimitProperties orderLimits, JdbcTemplate jdbc) {
@@ -48,8 +62,6 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                         .requestMatchers(LOGIN).permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/password", LOGOUT, "/api/admin/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/actuator/metrics", "/actuator/metrics/*").hasRole("OWNER")
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().denyAll())

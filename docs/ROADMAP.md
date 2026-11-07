@@ -108,7 +108,7 @@ Plan potvrđen 2026-11-07. Pravi deploy je odložen do dana kad se softver bude 
 - [x] 6.1 Dependabot, pinovanje akcija po SHA, pregled `npm audit`
 - [x] 6.2 Dockerfile za backend i frontend, ceo sistem jednom komandom, proxy koji čita adresu backenda u runtime-u, profil `dev` se ne uključuje
 - [x] 6.3 Poseban korisnik baze (`shop_migrator`, `shop_app`) i tajmauti baze
-- [ ] 6.4 Actuator na posebnom portu, backend dostupan samo Next serveru, `X-Forwarded-For`
+- [x] 6.4 Actuator na posebnom portu, backend dostupan samo Next serveru, `X-Forwarded-For`
 - [ ] 6.5 Pun CSP sa nonce-om
 - [ ] 6.6 Idempotentni ključ za porudžbinu
 - [ ] 6.7 Nasumični javni token porudžbine

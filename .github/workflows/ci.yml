@@ -62,6 +62,9 @@ jobs:
       - name: Smoke test through the frontend
         run: scripts/smoke.sh http://127.0.0.1:3100
 
+      - name: Network isolation
+        run: scripts/smoke-isolation.sh
+
       - name: Backend runs without the dev profile
         run: $COMPOSE logs backend | grep -q "No active profile set"
 
