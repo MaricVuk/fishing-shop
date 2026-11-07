@@ -69,3 +69,43 @@ Kad račun postoji, a kupac ga nije dobio, `DEAD` je posao **"Mejl sa računom"*
 ### Posao koji ponavljanje ne može da popravi
 
 Na primer, adresa koju mejl server ne prihvata, ili stara porudžbina. Vlasnik na **Admin → Poslovi** klikne "Označi kao rešeno" i upiše šta je urađeno umesto toga. Posao prelazi u `RESOLVED`, ostaje u listi pod "Rešeni" i u audit logu, a upozorenje na Pregledu nestaje.
+
+## Baza i nalozi (Faza 6)
+
+U `compose.prod.yml` baza ima tri naloga ([ADR 0005](adr/0005-append-only-audit-log.md), `docker/postgres/init-roles.sh`):
+
+| Nalog | Šta sme | Gde se koristi |
+|---|---|---|
+| `POSTGRES_USER` | sve | samo pri prvom pravljenju baze i za ručni popravak |
+| `shop_migrator` | vlasnik tabela, pravi šemu | Flyway pri startu backenda (`SPRING_FLYWAY_USER`) |
+| `shop_app` | `SELECT`, `INSERT`, a `UPDATE`/`DELETE` samo na spisku u `R__app_grants.sql` | backend u radu (`DB_USER`) |
+
+Razvojna baza (`docker-compose.yml`) i testovi koriste jedan nalog.
+
+### Posle migracije backend javlja `permission denied for table ...`
+
+Nova tabela je po podrazumevanju samo za dopisivanje. Ako je backend treba i da menja, dodaj je u `backend/src/main/resources/db/migration/R__app_grants.sql` i u spisak u `DatabaseRolesTests.appCanUpdateOnlyTheTablesTheApplicationChanges`. Repeatable migracija se izvrši sama pri sledećem startu. Hitno, ručno:
+
+```bash
+docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "GRANT UPDATE ON nova_tabela TO shop_app"
+```
+
+Pa isto upiši u `R__app_grants.sql`, inače se izgubi pri sledećoj promeni tog fajla.
+
+### Promena lozinke naloga baze
+
+```bash
+docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ALTER ROLE shop_app PASSWORD 'nova-lozinka'"
+```
+
+Pa promeni `SHOP_DB_APP_PASSWORD` (ili `SHOP_DB_MIGRATOR_PASSWORD`) u okruženju i restartuj backend. Init skripta ne radi ponovo na postojećoj bazi.
+
+### Baza napravljena pre 6.3
+
+Init skripta se izvršava samo pri prvom pravljenju baze. Demo volumen se uklanja (`docker volume rm fishing-shop-prod_pgdata`). Baza sa pravim podacima traži ručni prelaz: izvrši naredbe iz `init-roles.sh` kao superkorisnik, pa `REASSIGN OWNED BY shop TO shop_migrator`.
+
+### Tajmauti u logu
+
+- `canceling statement due to statement timeout`: upit je trajao duže od 30 s (`statement_timeout` na roli `shop_app`). Izveštaji traju ispod 2 s, pa je to problem upita ili zaključanog reda.
+- `terminating connection due to idle-in-transaction timeout`: transakcija je mirovala duže od 120 s, najčešće worker koji čeka SMTP. Baza je oslobodila zaključan red, a posao se vraća u red i ponavlja (vidi "Pozadinski poslovi").
+
