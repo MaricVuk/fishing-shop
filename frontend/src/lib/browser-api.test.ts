@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchVariantLines, submitOrder } from "@/lib/browser-api";
 import type { OrderRequest } from "@/lib/types";
 
+const KEY = "0123456789abcdef0123456789abcdef";
+
 const request: OrderRequest = {
   customer: { name: "A", email: "a@b.rs", phone: "", shippingAddress: "Ulica 1" },
   items: [{ variantId: 1, quantity: 2 }],
@@ -38,12 +40,12 @@ describe("submitOrder", () => {
     const order = { id: 12, status: "NEW", total: 9000, createdAt: "x", items: [] };
     const fetchMock = mockFetch({ status: 201, json: async () => order });
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "created", order });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "created", order });
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/orders");
     expect(init.method).toBe("POST");
-    expect(init.headers).toMatchObject({ "Content-Type": "application/json" });
+    expect(init.headers).toMatchObject({ "Content-Type": "application/json", "Idempotency-Key": KEY });
     expect(JSON.parse(init.body)).toEqual(request);
   });
 
@@ -51,13 +53,13 @@ describe("submitOrder", () => {
     const errors = [{ field: "customer.email", code: "Email" }];
     mockFetch({ ok: false, status: 400, json: async () => ({ errors }) });
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "invalid", errors });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "invalid", errors });
   });
 
   it("returns an empty error list when a 400 has no details", async () => {
     mockFetch({ ok: false, status: 400, json: async () => ({}) });
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "invalid", errors: [] });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "invalid", errors: [] });
   });
 
   it("returns the unavailable variants for a 422", async () => {
@@ -67,7 +69,7 @@ describe("submitOrder", () => {
       json: async () => ({ unavailableVariantIds: [4, 9] }),
     });
 
-    await expect(submitOrder(request)).resolves.toEqual({
+    await expect(submitOrder(request, KEY)).resolves.toEqual({
       kind: "unavailable",
       variantIds: [4, 9],
     });
@@ -80,7 +82,7 @@ describe("submitOrder", () => {
       json: async () => ({ insufficientStockVariantIds: [2, 7] }),
     });
 
-    await expect(submitOrder(request)).resolves.toEqual({
+    await expect(submitOrder(request, KEY)).resolves.toEqual({
       kind: "insufficient",
       variantIds: [2, 7],
     });
@@ -93,22 +95,28 @@ describe("submitOrder", () => {
       json: async () => ({ insufficientStockVariantIds: [2, "x", -1, 3.5, 8] }),
     });
 
-    await expect(submitOrder(request)).resolves.toEqual({
+    await expect(submitOrder(request, KEY)).resolves.toEqual({
       kind: "insufficient",
       variantIds: [2, 8],
     });
   });
 
+  it("reports an order that was already placed with the same key", async () => {
+    mockFetch({ ok: false, status: 422, json: async () => ({ idempotencyKeyReused: true }) });
+
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "alreadyPlaced" });
+  });
+
   it("reports a busy shop for a 503", async () => {
     mockFetch({ ok: false, status: 503, json: async () => ({}) });
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "busy" });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "busy" });
   });
 
   it("treats a 422 without unavailable variants as an invalid request", async () => {
     mockFetch({ ok: false, status: 422, json: async () => ({ variantId: 3 }) });
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "invalid", errors: [] });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "invalid", errors: [] });
   });
 
   it("reports an unconfirmed order when a 201 body is unreadable", async () => {
@@ -119,7 +127,7 @@ describe("submitOrder", () => {
       },
     });
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "unconfirmed" });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "unconfirmed" });
   });
 
   it("reports failure for server errors and unreadable bodies", async () => {
@@ -131,12 +139,12 @@ describe("submitOrder", () => {
       },
     });
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "failed" });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "failed" });
   });
 
   it("reports failure when the network is down", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
 
-    await expect(submitOrder(request)).resolves.toEqual({ kind: "failed" });
+    await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "failed" });
   });
 });

@@ -115,3 +115,16 @@ Init skripta se izvršava samo pri prvom pravljenju baze. Demo volumen se uklanj
 - `canceling statement due to statement timeout`: upit je trajao duže od 30 s (`statement_timeout` na roli `shop_app`). Izveštaji traju ispod 2 s, pa je to problem upita ili zaključanog reda.
 - `terminating connection due to idle-in-transaction timeout`: transakcija je mirovala duže od 120 s, najčešće worker koji čeka SMTP. Baza je oslobodila zaključan red, a posao se vraća u red i ponavlja (vidi "Pozadinski poslovi").
 
+## Porudžbine (Faza 6)
+
+### Kupac kaže da je poslao porudžbinu dvaput
+
+Checkout šalje `Idempotency-Key`, pa ponovljen zahtev iz iste stranice vraća prvu porudžbinu i ne skida zalihu ponovo. Dve porudžbine su moguće ako je kupac otvorio checkout dvaput (novi ključ) ili ako klijent ne šalje ključ (npr. stari tab ili poziv API-ja bez zaglavlja). Provera:
+
+```sql
+SELECT id, created_at, idempotency_key IS NOT NULL AS with_key, total
+FROM orders WHERE customer_email = '...' ORDER BY id DESC LIMIT 10;
+```
+
+Višak se otkazuje u adminu (vraća zalihu, ostaje u audit logu).
+

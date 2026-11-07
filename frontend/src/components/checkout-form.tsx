@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Notice } from "@/components/notice";
 import { OrderSummary } from "@/components/order-summary";
 import { TextField } from "@/components/text-field";
@@ -16,6 +16,7 @@ import { buildCartView } from "@/lib/cart";
 import {
   insufficientStockMessage,
   mapServerErrors,
+  newIdempotencyKey,
   toOrderRequest,
   validateCheckout,
   type CheckoutField,
@@ -44,6 +45,7 @@ export function CheckoutForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<"created" | "unconfirmed" | null>(null);
+  const idempotencyKey = useRef<string | null>(null);
 
   function update(field: CheckoutField, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -69,7 +71,8 @@ export function CheckoutForm() {
     }
 
     setSubmitting(true);
-    const result = await submitOrder(toOrderRequest(values, cart.lines));
+    idempotencyKey.current ??= newIdempotencyKey();
+    const result = await submitOrder(toOrderRequest(values, cart.lines), idempotencyKey.current);
 
     if (result.kind === "created") {
       saveLastOrder(result.order);
@@ -102,6 +105,10 @@ export function CheckoutForm() {
     } else if (result.kind === "insufficient") {
       setFormError(insufficientStockMessage(result.variantIds, variantLines));
       retry();
+    } else if (result.kind === "alreadyPlaced") {
+      setFormError(
+        "Porudžbina iz ove korpe je već primljena, a podaci su u međuvremenu promenjeni. Proverite mejl ili nam se javite pre nego što pošaljete novu.",
+      );
     } else if (result.kind === "busy") {
       setFormError("Prodavnica je trenutno zauzeta. Pokušajte ponovo za nekoliko sekundi.");
     } else {

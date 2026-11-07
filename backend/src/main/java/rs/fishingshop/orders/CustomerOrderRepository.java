@@ -15,4 +15,7 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
 
     @Query("select distinct o from CustomerOrder o left join fetch o.items where o.id = :id")
     Optional<CustomerOrder> findWithItems(@Param("id") Long id);
+
+    @Query("select distinct o from CustomerOrder o left join fetch o.items where o.idempotencyKey = :key")
+    Optional<CustomerOrder> findWithItemsByIdempotencyKey(@Param("key") String key);
 }

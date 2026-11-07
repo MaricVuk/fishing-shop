@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   insufficientStockMessage,
   mapServerErrors,
+  newIdempotencyKey,
   toOrderRequest,
   validateCheckout,
   type CheckoutValues,
@@ -14,6 +15,14 @@ const valid: CheckoutValues = {
   phone: "",
   address: "Knez Mihailova 1, Beograd",
 };
+
+describe("newIdempotencyKey", () => {
+  it("is 32 hex characters, which the API accepts, and different every time", () => {
+    const keys = new Set(Array.from({ length: 50 }, () => newIdempotencyKey()));
+    expect(keys.size).toBe(50);
+    for (const key of keys) expect(key).toMatch(/^[0-9a-f]{32}$/);
+  });
+});
 
 describe("validateCheckout", () => {
   it("accepts valid values with an empty phone", () => {

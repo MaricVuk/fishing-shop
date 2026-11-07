@@ -12,6 +12,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +44,12 @@ public class CustomerOrder {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
+    @Column(name = "idempotency_fingerprint")
+    private String idempotencyFingerprint;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
@@ -56,13 +63,18 @@ public class CustomerOrder {
         this.shippingAddress = shippingAddress;
         this.status = OrderStatus.NEW;
         this.total = BigDecimal.ZERO;
-        this.createdAt = Instant.now();
+        this.createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
     public void addItem(OrderItem item) {
         item.attachTo(this);
         items.add(item);
         total = total.add(item.lineTotal());
+    }
+
+    void placedWith(String idempotencyKey, String idempotencyFingerprint) {
+        this.idempotencyKey = idempotencyKey;
+        this.idempotencyFingerprint = idempotencyFingerprint;
     }
 
     public void moveTo(OrderStatus next) {
@@ -102,6 +114,10 @@ public class CustomerOrder {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    String getIdempotencyFingerprint() {
+        return idempotencyFingerprint;
     }
 
     public List<OrderItem> getItems() {
