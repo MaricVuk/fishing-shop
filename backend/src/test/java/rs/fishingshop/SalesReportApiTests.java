@@ -105,17 +105,30 @@ class SalesReportApiTests extends EmployeeTestSupport {
     }
 
     @Test
-    void weeksStartOnMonday() throws Exception {
+    void weeksStartOnMondayAndAPartialFirstWeekStartsOnTheFirstCountedDay() throws Exception {
         order("2001-09-02T10:00:00Z", "5.00", "CONFIRMED");
         order("2001-09-03T10:00:00Z", "7.00", "CONFIRMED");
 
         report("from=2001-08-29&to=2001-09-05&granularity=WEEK")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.buckets", hasSize(2)))
-                .andExpect(jsonPath("$.buckets[0].start").value("2001-08-27"))
+                .andExpect(jsonPath("$.buckets[0].start").value("2001-08-29"))
                 .andExpect(jsonPath("$.buckets[0].revenue").value("5.00"))
                 .andExpect(jsonPath("$.buckets[1].start").value("2001-09-03"))
                 .andExpect(jsonPath("$.buckets[1].revenue").value("7.00"));
+    }
+
+    @Test
+    void aPartialFirstMonthStartsOnTheFirstCountedDay() throws Exception {
+        order("2001-10-10T10:00:00Z", "3.00", "CONFIRMED");
+        order("2001-10-20T10:00:00Z", "4.00", "CONFIRMED");
+
+        report("from=2001-10-15&to=2001-11-30&granularity=MONTH")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.buckets", hasSize(2)))
+                .andExpect(jsonPath("$.buckets[0].start").value("2001-10-15"))
+                .andExpect(jsonPath("$.buckets[0].revenue").value("4.00"))
+                .andExpect(jsonPath("$.buckets[1].start").value("2001-11-01"));
     }
 
     @Test

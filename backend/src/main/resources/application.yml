@@ -50,6 +50,8 @@ spring:
 
   task:
     scheduling:
+      pool:
+        size: 2
       shutdown:
         await-termination: true
         await-termination-period: 45s

@@ -17,13 +17,6 @@ record EventCursor(long orderId, long movementId) {
                 : null;
     }
 
-    boolean isNew(AdminEvent event) {
-        return switch (event.type()) {
-            case ORDER_PLACED -> event.sourceId() > orderId;
-            case VARIANT_SOLD_OUT -> event.sourceId() > movementId;
-        };
-    }
-
     EventCursor after(AdminEvent event) {
         return switch (event.type()) {
             case ORDER_PLACED -> new EventCursor(Math.max(orderId, event.sourceId()), movementId);

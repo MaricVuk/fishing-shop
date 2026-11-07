@@ -128,6 +128,20 @@ class AdminEventStreamTests extends CommittedOrderTestSupport {
     }
 
     @Test
+    void aNewStreamCanResumeFromAParameterWhenTheBrowserCannotSendTheHeader() throws Exception {
+        long variant = variantWithStock("EVT-PARAM", 2);
+        EventStream first = connect("OWNER", null);
+        String lastSeen = first.next(null).id();
+        first.close();
+
+        long missed = placeOrder(variant, 1);
+        EventStream again = connect("OWNER", null, "/api/admin/events?lastEventId=" + lastSeen);
+
+        SseFrame replayed = again.next("order-placed");
+        assertThat((Integer) JsonPath.read(replayed.data(), "$.orderId")).isEqualTo((int) missed);
+    }
+
+    @Test
     void aFreshConnectionDoesNotReplayHistory() throws Exception {
         long variant = variantWithStock("EVT-OLD", 1);
         placeOrder(variant, 1);
@@ -150,8 +164,12 @@ class AdminEventStreamTests extends CommittedOrderTestSupport {
     }
 
     private EventStream connect(String role, String lastEventId) throws Exception {
+        return connect(role, lastEventId, "/api/admin/events");
+    }
+
+    private EventStream connect(String role, String lastEventId, String path) throws Exception {
         Map<String, String> cookies = logIn(role);
-        HttpRequest.Builder request = HttpRequest.newBuilder(url("/api/admin/events"))
+        HttpRequest.Builder request = HttpRequest.newBuilder(url(path))
                 .header("Accept", "text/event-stream")
                 .header("Cookie", cookies.entrySet().stream()
                         .map(cookie -> cookie.getKey() + "=" + cookie.getValue())

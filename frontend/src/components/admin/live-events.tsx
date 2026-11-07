@@ -10,7 +10,9 @@ import {
   REFRESH_DELAY_MS,
   addNotice,
   describeAdminEvent,
+  reconnectDelay,
   refreshesOn,
+  streamUrl,
 } from "@/lib/admin-events";
 
 const NOTICE_LIFETIME_MS = 20_000;
@@ -26,44 +28,73 @@ export function LiveEvents() {
   }, [pathname]);
 
   useEffect(() => {
-    const source = new EventSource("/api/admin/events");
+    let source: EventSource | null = null;
     let stopped = false;
+    let attempt = 0;
+    let lastEventId: string | null = null;
     let refresh: number | undefined;
+    let retry: number | undefined;
+    const lifetimes = new Set<number>();
 
     const show = (event: MessageEvent<string>) => {
+      if (event.lastEventId) lastEventId = event.lastEventId;
       const notice = describeAdminEvent(event.type, event.data);
       if (!notice) return;
       setNotices((current) => addNotice(current, notice));
-      if (refreshesOn(pathnameRef.current)) {
-        window.clearTimeout(refresh);
-        refresh = window.setTimeout(() => router.refresh(), REFRESH_DELAY_MS);
+      if (refreshesOn(pathnameRef.current) && refresh === undefined) {
+        refresh = window.setTimeout(() => {
+          refresh = undefined;
+          router.refresh();
+        }, REFRESH_DELAY_MS);
       }
-      window.setTimeout(
-        () => setNotices((current) => current.filter((existing) => existing.key !== notice.key)),
-        NOTICE_LIFETIME_MS,
-      );
+      const lifetime = window.setTimeout(() => {
+        lifetimes.delete(lifetime);
+        setNotices((current) => current.filter((existing) => existing.key !== notice.key));
+      }, NOTICE_LIFETIME_MS);
+      lifetimes.add(lifetime);
     };
 
-    const checkSession = async () => {
+    // The browser retries a dropped stream by itself, but an error response (the server busy, the proxy
+    // answering while the backend restarts) closes the EventSource for good, so the page opens a new one.
+    const handleError = async () => {
       if (stopped) return;
+      let status: number | null = null;
       try {
-        const me = await fetch("/api/auth/me", { cache: "no-store" });
-        if (me.status === 401) {
-          stopped = true;
-          source.close();
-        }
+        status = (await fetch("/api/auth/me", { cache: "no-store" })).status;
       } catch {
-        // the browser keeps retrying the stream on its own
+        status = null;
+      }
+      if (stopped) return;
+      if (status === 401) {
+        stopped = true;
+        source?.close();
+        return;
+      }
+      if (source?.readyState === EventSource.CLOSED && retry === undefined) {
+        retry = window.setTimeout(() => {
+          retry = undefined;
+          if (!stopped) connect();
+        }, reconnectDelay(attempt++));
       }
     };
 
-    ADMIN_EVENT_NAMES.forEach((name) => source.addEventListener(name, show));
-    source.addEventListener("error", checkSession);
+    const connect = () => {
+      source = new EventSource(streamUrl(lastEventId));
+      source.addEventListener("open", () => {
+        attempt = 0;
+      });
+      ADMIN_EVENT_NAMES.forEach((name) => source?.addEventListener(name, show));
+      source.addEventListener("error", handleError);
+    };
+
+    connect();
 
     return () => {
       stopped = true;
       window.clearTimeout(refresh);
-      source.close();
+      window.clearTimeout(retry);
+      lifetimes.forEach((lifetime) => window.clearTimeout(lifetime));
+      source?.close();
     };
   }, [router]);
 

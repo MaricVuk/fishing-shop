@@ -71,7 +71,7 @@ describe("reportPresets", () => {
   it("ends every preset today and starts months on the first", () => {
     expect(reportPresets("2026-03-31").map((preset) => preset.query)).toEqual([
       { from: "2026-03-02", to: "2026-03-31", granularity: "DAY" },
-      { from: "2025-10-01", to: "2026-03-31", granularity: "WEEK" },
+      { from: "2025-10-06", to: "2026-03-31", granularity: "WEEK" },
       { from: "2025-04-01", to: "2026-03-31", granularity: "MONTH" },
       { from: "2021-04-01", to: "2026-03-31", granularity: "MONTH" },
     ]);
@@ -123,5 +123,17 @@ describe("stockLevelLabel", () => {
     expect(stockLevelLabel(0)).toBe("Nema na stanju");
     expect(stockLevelLabel(3)).toBe("3 kom.");
     expect(stockLevelLabel(1500)).toBe("1.500 kom.");
+  });
+});
+
+describe("26-week preset", () => {
+  it("starts on a Monday so the first week is whole, and covers 26 weeks", () => {
+    for (const today of ["2026-03-31", "2026-11-07", "2026-11-09", "2026-11-15"]) {
+      const from = reportPresets(today)[1].query.from as string;
+      const [y, m, d] = from.split("-").map(Number);
+      expect(new Date(Date.UTC(y, m - 1, d)).getUTCDay()).toBe(1);
+      const weeks = (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / (7 * 86400000);
+      expect(Math.floor(weeks) + 1).toBe(26);
+    }
   });
 });

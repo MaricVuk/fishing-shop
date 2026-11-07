@@ -78,3 +78,15 @@ export const REFRESH_DELAY_MS = 600;
 export function refreshesOn(pathname: string): boolean {
   return pathname === "/admin";
 }
+
+const STREAM_PATH = "/api/admin/events";
+const FIRST_RETRY_MS = 2_000;
+const LONGEST_RETRY_MS = 60_000;
+
+export function streamUrl(lastEventId: string | null): string {
+  return lastEventId ? `${STREAM_PATH}?lastEventId=${encodeURIComponent(lastEventId)}` : STREAM_PATH;
+}
+
+export function reconnectDelay(attempt: number): number {
+  return Math.min(FIRST_RETRY_MS * 2 ** Math.max(0, attempt), LONGEST_RETRY_MS);
+}
