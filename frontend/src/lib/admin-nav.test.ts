@@ -10,6 +10,7 @@ describe("adminNavigation", () => {
       "/admin",
       "/admin/orders",
       "/admin/stock",
+      "/admin/reports",
       "/admin/employees",
       "/admin/jobs",
       "/admin/audit",
@@ -38,6 +39,9 @@ describe("canAccess", () => {
     expect(canAccess("OWNER", "/admin/jobs")).toBe(true);
     expect(canAccess("SELLER", "/admin/jobs")).toBe(false);
     expect(canAccess("WAREHOUSE", "/admin/jobs")).toBe(false);
+    expect(canAccess("OWNER", "/admin/reports")).toBe(true);
+    expect(canAccess("SELLER", "/admin/reports")).toBe(false);
+    expect(canAccess("WAREHOUSE", "/admin/reports")).toBe(false);
   });
 });
 

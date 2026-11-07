@@ -6,6 +6,7 @@ const SECTIONS: (AdminNavItem & { roles: EmployeeRole[] })[] = [
   { href: "/admin", label: "Pregled", roles: ["OWNER", "SELLER", "WAREHOUSE"] },
   { href: "/admin/orders", label: "Porudžbine", roles: ["OWNER", "SELLER"] },
   { href: "/admin/stock", label: "Magacin", roles: ["OWNER", "WAREHOUSE"] },
+  { href: "/admin/reports", label: "Izveštaji", roles: ["OWNER"] },
   { href: "/admin/employees", label: "Zaposleni", roles: ["OWNER"] },
   { href: "/admin/jobs", label: "Poslovi", roles: ["OWNER"] },
   { href: "/admin/audit", label: "Audit log", roles: ["OWNER"] },

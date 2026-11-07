@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: "Pregled" };
 const DESCRIPTIONS: Record<string, string> = {
   "/admin/orders": "Nove porudžbine, potvrda, slanje i otkazivanje.",
   "/admin/stock": "Stanje po varijanti, prijem robe, popis i istorija kretanja.",
+  "/admin/reports": "Prodaja po danima, nedeljama i mesecima.",
   "/admin/employees": "Nalozi zaposlenih i njihove uloge.",
   "/admin/jobs": "Mejlovi i računi koji se šalju u pozadini.",
   "/admin/audit": "Ko je šta promenio i kada.",
