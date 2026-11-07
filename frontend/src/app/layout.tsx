@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Barlow_Condensed, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import { SHOP_DESCRIPTION, SHOP_NAME } from "@/lib/config";
@@ -21,7 +22,8 @@ export const metadata: Metadata = {
   description: SHOP_DESCRIPTION,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  await connection();
   return (
     <html lang="sr-Latn" className={`${body.variable} ${display.variable} h-full`}>
       <body className="flex min-h-full flex-col">{children}</body>
