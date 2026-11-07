@@ -9,13 +9,16 @@ import org.springframework.stereotype.Component;
 class JobScheduler {
 
     private final JobWorker worker;
+    private final JobWorkerHeartbeat heartbeat;
 
-    JobScheduler(JobWorker worker) {
+    JobScheduler(JobWorker worker, JobWorkerHeartbeat heartbeat) {
         this.worker = worker;
+        this.heartbeat = heartbeat;
     }
 
     @Scheduled(fixedDelayString = "${shop.jobs.poll-interval}")
     void poll() {
         worker.runOnce();
+        heartbeat.recordPoll();
     }
 }

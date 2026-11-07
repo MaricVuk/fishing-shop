@@ -6,6 +6,17 @@
 
 Poslovi su redovi u tabeli `background_jobs` ([ADR 0006](adr/0006-job-queue-in-postgres.md)). Worker radi u backend procesu i na svakih 5 sekundi uzima poslove kojima je došlo vreme. Isporuka je "bar jednom": ako backend padne posle slanja mejla, a pre upisa `DONE`, kupac dobije isti mejl dvaput.
 
+### Nadzor bez admina (od 5.1)
+
+Vlasnik (sa kolačićem sesije) ili sistem za nadzor čita stanje direktno sa backenda; `/actuator` ne ide kroz Next proxy.
+
+- `GET /actuator/health`: za vlasnika komponenta `jobs` ima `pending`, `dead`, `done`, `resolved`, `oldestOverdueSeconds` i `workerLastPollSecondsAgo`. Uvek je `UP`, pa se uzbuna ne zasniva na njoj.
+- `GET /actuator/metrics/shop.jobs?tag=status:DEAD`: broj odustalih poslova. Uzbuna kad je veći od 0.
+- `GET /actuator/metrics/shop.jobs.worker.last.poll`: sekunde od poslednjeg uspešnog prolaza workera (`NaN` dok worker nije prošao nijednom). Više od nekoliko minuta znači da worker ne radi ili da baza ne odgovara.
+- `GET /actuator/metrics/shop.jobs.oldest.overdue`: koliko čeka najstariji posao kojem je došlo vreme. Duže od 10 minuta znači da worker ne stiže.
+
+Logovi su van profila `dev` JSON (ECS): `log.logger` je npr. `rs.fishingshop.jobs.JobWorker`, a `log.level` je `WARN` za neuspeo pokušaj i `ERROR` za `DEAD`.
+
 ### Stanje reda
 
 ```sql

@@ -32,3 +32,8 @@ shop:
     tax-id: ${SHOP_SELLER_TAX_ID:100000000}
     registration-number: ${SHOP_SELLER_REGISTRATION_NUMBER:20000000}
     bank-account: ${SHOP_SELLER_BANK_ACCOUNT:000-0000000000000-00}
+
+logging:
+  structured:
+    format:
+      console: ""
