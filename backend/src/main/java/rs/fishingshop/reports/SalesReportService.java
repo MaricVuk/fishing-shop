@@ -22,6 +22,8 @@ public class SalesReportService {
 
     // Day boundaries are local to the shop (Europe/Belgrade): a DST day is 23 or 25 hours long, and an
     // order at 00:30 local time belongs to that day even though it is the previous day in UTC.
+    // A week or month that starts before 'from' is reported as starting on 'from', since only those days
+    // are counted; otherwise a partial first week would look like a weak full week.
     @Transactional(readOnly = true)
     public SalesReport sales(ReportPeriod period, ReportGranularity granularity) {
         LocalDate from = period.from();
@@ -45,7 +47,7 @@ public class SalesReportService {
                       AND o.created_at < (?::date + 1)::timestamp AT TIME ZONE 'Europe/Belgrade'
                     GROUP BY 1
                 )
-                SELECT series.bucket::date AS bucket,
+                SELECT greatest(series.bucket::date, ?::date) AS bucket,
                        coalesce(s.orders, 0) AS orders,
                        coalesce(s.revenue, 0) AS revenue,
                        coalesce(s.new_orders, 0) AS new_orders,
@@ -61,7 +63,7 @@ public class SalesReportService {
                         rs.getLong("orders"),
                         rs.getBigDecimal("new_revenue"),
                         rs.getLong("new_orders")),
-                unit, from, to, unit, from, to, unit);
+                unit, from, to, from, unit, from, to, unit);
         return new SalesReport(from, to, granularity, totals(buckets), buckets);
     }
 

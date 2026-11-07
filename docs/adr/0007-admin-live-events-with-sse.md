@@ -45,9 +45,19 @@ Posledice za implementaciju: zaglavlje `Cache-Control: no-cache, no-transform` j
 - Sadržaj događaja se čita iz baze (`AdminEventFeed`), isti upit služi i za nadoknadu.
 - Id događaja je kursor `{poslednja porudžbina}-{poslednje kretanje zalihe}`; šalje se i uz heartbeat, pa browser uvek zna dokle je stigao, i kad su događaji za druge uloge preskočeni.
 - Konekcija bez `Last-Event-ID` počinje od trenutnog stanja (bez istorije); sa njim dobija najviše 50 propuštenih porudžbina i 50 rasprodatih varijanti.
-- Tok traje najviše 5 minuta, pa se browser ponovo poveže. Novi zahtev ponovo prolazi proveru sesije, pa isključen nalog ili promenjena uloga deluju najkasnije za 5 minuta. Najviše 200 otvorenih tokova (`503` preko toga).
+- Tok traje najviše 5 minuta, pa se browser ponovo poveže. Novi zahtev ponovo prolazi proveru sesije, pa isključen nalog ili promenjena uloga deluju najkasnije za 5 minuta. Najviše 200 otvorenih tokova (`503` preko toga), od 5.7 i najviše 10 po zaposlenom.
 - Uloge: novu porudžbinu vide vlasnik i prodavac, poslednji komad vlasnik i magacioner.
 - Pad jedne veze ne sme da utiče na ostale: svaka greška pri upisu ili zatvaranju veze se obrađuje unutar te veze (zatvoren tab je uobičajen, a `completeWithError` iz tuđe niti ume da baci izuzetak), pa se slanje drugima nastavlja.
+
+### Dopuna posle pregleda koda (5.7)
+
+- **Ponavljanje se prepoznaje po samom događaju, ne po redosledu id-jeva.** Porudžbine dobijaju id pri upisu, a commit-uju se drugim redom, pa porudžbina 100 može da stigne posle 101. Ranije je kursor (najveći viđeni id) takvu porudžbinu odbacivao i povezanim adminima; sada svaka veza pamti poslednjih 500 poslatih događaja, a kursor služi samo da browser zna odakle da nastavi.
+- **Nova veza ne gubi događaj koji se commit-uje dok se otvara**: posle registracije se uvek pošalje i ono što je u bazi posle pročitanog kursora (obično ništa).
+- **Slanje browserima ide u posebnoj niti** (`admin-events`), ne u niti kupčevog zahteva i ne u niti scheduler-a: spora ili poluotvorena admin veza ne usporava porudžbinu ni pozadinske poslove. Scheduler ima 2 niti (`spring.task.scheduling.pool.size`), pa heartbeat ne čeka na job worker kad SMTP sporo odgovara.
+- **Najviše 10 tokova po zaposlenom** (`429`) i 200 ukupno (`503`), proveravano atomično.
+- **Admin stranica sama otvara novi tok** posle odgovora koji nije `200` (backend se restartuje, server je zauzet): browser to ne radi sam. Ponovni pokušaj čeka 2 s, pa duplo, najviše 1 minut, a novi tok nastavlja od poslednjeg viđenog id-ja preko parametra `?lastEventId=` (zaglavlje `Last-Event-ID` browser šalje samo pri svom automatskom ponovnom povezivanju).
+
+Poznata ograničenja koja ostaju: jedna nit za slanje znači da jedna zaglavljena veza usporava slanje ostalima dok upis ne istekne; nadoknada posle prekida ide po id-ju, pa porudžbina sa manjim id-jem koja se commit-uje dok je veza prekinuta ne stiže kao obaveštenje.
 
 ## Posledice
 

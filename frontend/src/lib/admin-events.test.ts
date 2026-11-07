@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { MAX_NOTICES, addNotice, describeAdminEvent, refreshesOn, type AdminNotice } from "@/lib/admin-events";
+import {
+  MAX_NOTICES,
+  addNotice,
+  describeAdminEvent,
+  reconnectDelay,
+  refreshesOn,
+  streamUrl,
+  type AdminNotice,
+} from "@/lib/admin-events";
 
 describe("describeAdminEvent", () => {
   it("describes a new order with its total and item count", () => {
@@ -83,5 +91,26 @@ describe("refreshesOn", () => {
     expect(refreshesOn("/admin/stock/3")).toBe(false);
     expect(refreshesOn("/admin/reports")).toBe(false);
     expect(refreshesOn("/admin/account")).toBe(false);
+  });
+});
+
+describe("streamUrl", () => {
+  it("resumes from the last event the page saw", () => {
+    expect(streamUrl(null)).toBe("/api/admin/events");
+    expect(streamUrl("547501-29")).toBe("/api/admin/events?lastEventId=547501-29");
+  });
+
+  it("never lets an odd id change the path", () => {
+    expect(streamUrl("1-2&x=../")).toBe("/api/admin/events?lastEventId=1-2%26x%3D..%2F");
+  });
+});
+
+describe("reconnectDelay", () => {
+  it("doubles from two seconds and stops at a minute", () => {
+    expect([0, 1, 2, 3, 4, 5, 10].map(reconnectDelay)).toEqual([2000, 4000, 8000, 16000, 32000, 60000, 60000]);
+  });
+
+  it("treats a negative attempt as the first one", () => {
+    expect(reconnectDelay(-3)).toBe(2000);
   });
 });

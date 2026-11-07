@@ -12,7 +12,7 @@ WITH sales AS (
       AND o.created_at < (:'to'::date + 1)::timestamp AT TIME ZONE 'Europe/Belgrade'
     GROUP BY 1
 )
-SELECT series.bucket::date AS bucket,
+SELECT greatest(series.bucket::date, :'from'::date) AS bucket,
        coalesce(s.orders, 0) AS orders,
        coalesce(s.revenue, 0) AS revenue,
        coalesce(s.new_orders, 0) AS new_orders,
