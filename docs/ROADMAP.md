@@ -105,7 +105,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 Plan potvrđen 2026-11-07. Pravi deploy je odložen do dana kad se softver bude prodavao ([ADR 0008](adr/0008-deploy-postponed.md)); faza priprema sistem tako da se pokreće jednom komandom i da je bezbednosni dug koji se može zatvoriti bez hostinga zatvoren. Jedna grana i jedan PR po celini.
 
 - [x] 6.0 Odluke: ADR 0008, ROADMAP i DECISIONS usklađeni (`boring-tech-advisor` za platformu, bazu i nadzor)
-- [ ] 6.1 Dependabot, pinovanje akcija po SHA, pregled `npm audit`
+- [x] 6.1 Dependabot, pinovanje akcija po SHA, pregled `npm audit`
 - [ ] 6.2 Dockerfile za backend i frontend, ceo sistem jednom komandom, proxy koji čita adresu backenda u runtime-u, profil `dev` se ne uključuje
 - [ ] 6.3 Poseban korisnik baze (`shop_migrator`, `shop_app`) i tajmauti baze
 - [ ] 6.4 Actuator na posebnom portu, backend dostupan samo Next serveru, `X-Forwarded-For`
