@@ -81,7 +81,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Pregled `incident-thinker` pre puštanja workera i pregled koda cele faze (10 nalaza, svi ispravljeni); postupci su u [RUNBOOK.md](RUNBOOK.md)
 - Idempotentni ključ za porudžbinu je pomeren u dug
 
-## Faza 5: Izveštaji, dashboard, uživo obaveštenja (u toku)
+## Faza 5: Izveštaji, dashboard, uživo obaveštenja (gotova)
 
 - [x] Izveštaji: prodaja po periodu, najprodavaniji, niske zalihe (5.2, 5.3, [merenja](perf/sales-report.md))
 - [x] Admin dashboard sa grafikonima (5.5, po ulozi, osvežava se na događaj iz 5.4)
@@ -92,9 +92,29 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Keširanje i invalidacija: bez keša dok merenje ne pokaže potrebu, zatim Caffeine sa TTL-om (odluka u [DECISIONS.md](DECISIONS.md))
 - Opterećenje: bar jedan load test (k6 ili Gatling) sa brojevima u README-u (urađeno u 5.6, [merenja](perf/load-test.md))
 
+**Šta su odluke donele**
+- Odluke pre koda izazvane agentom `boring-tech-advisor`: bez keša, živi SQL upiti umesto zbirnih tabela, SSE umesto WebSocket-a ([ADR 0007](adr/0007-admin-live-events-with-sse.md))
+- Izveštaji su mereni na bazi sa 547k porudžbina i 1M stavki: `EXPLAIN ANALYZE` je našao spajanje pre sabiranja, JIT, `count(DISTINCT)` i generički plan pripremljene naredbe, ne nedostatak indeksa; jedina migracija je `V14` (varijanta jednom po porudžbini) ([merenja](perf/sales-report.md), [najprodavaniji](perf/product-reports.md))
+- Proba pre koda: Next gzip zadržava SSE tok bez `no-transform`, proxy prekida tihu vezu posle 30 s
+- Load test (k6): katalog 3.000 zahteva/s, zaliha pod 50 istovremenih kupaca tačna; otkrio `/dev/shm` u Postgres kontejneru ([load test](perf/load-test.md))
+- Logovi kao JSON, metrike reda i health bez obaranja shopa; CI je prvi put pao i našao pravu grešku u slanju obaveštenja
+- Pregled koda cele faze: 10 nalaza, 9 ispravljeno (2 potvrđena testom koji je pao), 1 svesno ostavljen kao dug
+
+## Faza 6: Priprema za deploy i deploy (sledeća, predlog)
+
+Predlog sastavljen od otvorenih stavki iz "Kroz sve faze" i duga sa rokom "pre deploya"; plan i redosled se potvrđuju na početku faze.
+
+- [ ] Izbor deploya (Fly.io, Render, Railway, VPS) i baze; javni link u README-u
+- [ ] Dockerfile za backend i frontend, ceo sistem jednom komandom
+- [ ] End-to-end test cele kupovine (npr. Playwright)
+- [ ] Bezbednost pre puštanja: HTTPS i HSTS, `__Host-` kolačići, 2FA bar za vlasnika, poseban korisnik baze, Actuator na posebnom portu, backend dostupan samo Next serveru, proxy koji čita adresu backenda u runtime-u, pun CSP
+- [ ] Idempotentni ključ za porudžbinu, storno račun, uzastopni brojevi porudžbina
+- [ ] Nadzor: Prometheus format, uzbuna na metrike reda, `shm_size` i tajmauti baze na izabranoj platformi
+- [ ] Vizuelna provera (svetla tema, telefon, izveštaji, obaveštenja, dashboard), slike proizvoda, Dependabot
+
 ## Kroz sve faze: kvalitet i inženjerske prakse
 
-- [ ] Testovi: unit, integracioni (Testcontainers), bar jedan end-to-end
+- [ ] Testovi: unit, integracioni (Testcontainers), bar jedan end-to-end (end-to-end je u Fazi 6)
 - [x] CI na svaki pull request i push na `main` (build + testovi)
 - [ ] Dockerfile za backend, ceo sistem podiže jedna komanda
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare

@@ -11,6 +11,17 @@ host_ip="$(hostname -I | awk '{print $1}')"
 base_url="${BASE_URL:-http://${host_ip}:8091}"
 psql_perf() { docker exec fishing-shop-perf psql -U shop -d shop_perf -Atc "$1"; }
 
+# Sets the stock and records the difference as an ADJUSTMENT movement, so that the stock of every variant
+# stays the sum of its movements (the rule the shop keeps) even in the perf database.
+set_stock() {
+  local filter="$1" quantity="$2"
+  psql_perf "WITH old AS (SELECT variant_id, quantity FROM inventory WHERE ${filter} AND quantity <> ${quantity} FOR UPDATE),
+    changed AS (UPDATE inventory i SET quantity = ${quantity} FROM old WHERE i.variant_id = old.variant_id
+                RETURNING i.variant_id, old.quantity AS before)
+    INSERT INTO stock_movements (variant_id, type, quantity_change, quantity_after, reason)
+    SELECT variant_id, 'ADJUSTMENT', ${quantity} - before, ${quantity}, 'k6 load test: stock reset' FROM changed" >/dev/null
+}
+
 mkdir -p "$here/results" && chmod a+rwx "$here/results"
 
 # Each scenario runs RUNS times (default 2) and the last run counts: the first one warms up the JVM and the
@@ -25,12 +36,12 @@ for run in $(seq 1 "$runs"); do
     orders-hot)
       variant="${VARIANT_ID:-30}"
       stock="${STOCK:-100}"
-      psql_perf "UPDATE inventory SET quantity = ${stock} WHERE variant_id = ${variant}" >/dev/null
+      set_stock "variant_id = ${variant}" "${stock}"
       before="$(psql_perf "SELECT COALESCE(max(id), 0) FROM orders")"
       extra_env+=(-e "VARIANT_ID=${variant}")
       ;;
     orders-spread)
-      psql_perf "UPDATE inventory SET quantity = 500000" >/dev/null
+      set_stock "TRUE" 500000
       ;;
   esac
 

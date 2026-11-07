@@ -98,10 +98,16 @@ function shift(iso: string, { days = 0, months = 0 }: { days?: number; months?: 
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
+function mondayOf(iso: string): string {
+  const [year, month, day] = parts(iso);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return shift(iso, { days: -((weekday + 6) % 7) });
+}
+
 export function reportPresets(today: string): ReportPreset[] {
   return [
     { label: "30 dana", query: { from: shift(today, { days: -29 }), to: today, granularity: "DAY" } },
-    { label: "26 nedelja", query: { from: shift(today, { days: -181 }), to: today, granularity: "WEEK" } },
+    { label: "26 nedelja", query: { from: mondayOf(shift(today, { days: -175 })), to: today, granularity: "WEEK" } },
     { label: "12 meseci", query: { from: shift(today, { months: -11 }).slice(0, 8) + "01", to: today, granularity: "MONTH" } },
     { label: "5 godina", query: { from: shift(today, { months: -59 }).slice(0, 8) + "01", to: today, granularity: "MONTH" } },
   ];

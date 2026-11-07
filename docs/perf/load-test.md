@@ -87,4 +87,6 @@ backend/perf/k6/run.sh orders-spread
 backend/perf/k6/run.sh reports
 ```
 
+`run.sh` menja zalihu uz kretanje `ADJUSTMENT` sa razlikom (od 5.7), pa zaliha ostaje zbir kretanja i u perf bazi. Baza napravljena pre toga ima 33 varijante gde to ne važi.
+
 Kontejner `grafana/k6` dolazi do backenda preko IP adrese WSL-a (`hostname -I`), jer `localhost` iz kontejnera ne vodi do WSL-a. Sirovi rezultati ostaju u `backend/perf/k6/results/` (nije u gitu). Perf baza posle testova ima oko 33.000 dodatnih porudžbina; za čist ponovljen test napravi je iznova.
