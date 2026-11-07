@@ -19,6 +19,7 @@ import rs.fishingshop.jobs.JobType;
 import rs.fishingshop.orders.CustomerOrder;
 import rs.fishingshop.orders.CustomerOrderRepository;
 import rs.fishingshop.orders.OrderStatus;
+import rs.fishingshop.orders.PublicOrderNumber;
 import rs.fishingshop.stock.StockService;
 
 @Service
@@ -49,8 +50,9 @@ class AdminOrderService {
     PageResponse<AdminOrderRow> search(OrderStatus status, String query, int page, int size) {
         String text = query == null ? "" : query.trim();
         Long orderId = text.matches("\\d{1,18}") ? Long.valueOf(text) : null;
-        String pattern = orderId != null ? "" : LikePatterns.contains(text);
-        return PageResponse.from(rows.search(status, orderId, pattern, PageRequest.of(page, size)));
+        String token = PublicOrderNumber.tokenFrom(text);
+        String pattern = orderId != null || token != null ? "" : LikePatterns.contains(text);
+        return PageResponse.from(rows.search(status, orderId, token, pattern, PageRequest.of(page, size)));
     }
 
     @Transactional(readOnly = true)

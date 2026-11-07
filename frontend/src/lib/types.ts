@@ -66,7 +66,7 @@ export type OrderItemResponse = {
 };
 
 export type OrderResponse = {
-  id: number;
+  number: string;
   status: string;
   total: number;
   createdAt: string;

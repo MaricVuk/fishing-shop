@@ -79,6 +79,8 @@ class StockShelfCountTests extends CommittedOrderTestSupport {
         CreateOrderRequest request = new CreateOrderRequest(
                 new CustomerRequest("Marko Marković", "marko@example.com", null, "Knez Mihailova 1, Beograd"),
                 List.of(new OrderItemRequest(variant, quantity)));
-        return orders.create(request).id();
+        String number = orders.create(request).number();
+        return jdbc.queryForObject("SELECT id FROM orders WHERE public_token = ?", Long.class,
+                number.replace("-", ""));
     }
 }

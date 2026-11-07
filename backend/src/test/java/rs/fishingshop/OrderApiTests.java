@@ -55,7 +55,7 @@ class OrderApiTests extends CatalogTestSupport {
     void createsOrderWithComputedTotalAndNewStatus() throws Exception {
         placeOrder(CUSTOMER, item(shortRod, 2) + "," + item(longRod, 1))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.number").isString())
                 .andExpect(jsonPath("$.status").value("NEW"))
                 .andExpect(jsonPath("$.total").value(13900.0))
                 .andExpect(jsonPath("$.createdAt").exists())
@@ -95,7 +95,7 @@ class OrderApiTests extends CatalogTestSupport {
         placeOrder(CUSTOMER, item(shortRod, 1))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.length()").value(5))
-                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.number").exists())
                 .andExpect(jsonPath("$.status").exists())
                 .andExpect(jsonPath("$.total").exists())
                 .andExpect(jsonPath("$.createdAt").exists())
@@ -415,9 +415,8 @@ class OrderApiTests extends CatalogTestSupport {
         return mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
-    private static long orderId(MvcResult result) throws Exception {
-        Number id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
-        return id.longValue();
+    private long orderId(MvcResult result) throws Exception {
+        return OrderNumbers.idOf(jdbc, result.getResponse().getContentAsString());
     }
 
     private static String item(long variantId, int quantity) {

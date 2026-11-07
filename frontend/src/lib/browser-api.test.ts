@@ -37,7 +37,7 @@ describe("fetchVariantLines", () => {
 
 describe("submitOrder", () => {
   it("posts JSON and returns the created order", async () => {
-    const order = { id: 12, status: "NEW", total: 9000, createdAt: "x", items: [] };
+    const order = { number: "1A2B-3C4D-5E6F", status: "NEW", total: 9000, createdAt: "x", items: [] };
     const fetchMock = mockFetch({ status: 201, json: async () => order });
 
     await expect(submitOrder(request, KEY)).resolves.toEqual({ kind: "created", order });

@@ -46,6 +46,7 @@ export type OrderStatus = "NEW" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCE
 
 export type AdminOrderRow = {
   id: number;
+  number: string;
   createdAt: string;
   status: OrderStatus;
   customerName: string;
@@ -67,6 +68,7 @@ export type AuditEntry = {
 
 export type AdminOrderDetail = {
   id: number;
+  number: string;
   status: OrderStatus;
   createdAt: string;
   total: number;

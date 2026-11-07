@@ -11,6 +11,7 @@ import rs.fishingshop.orders.OrderStatus;
 
 record AdminOrderDetail(
         Long id,
+        String number,
         OrderStatus status,
         Instant createdAt,
         BigDecimal total,
@@ -35,6 +36,7 @@ record AdminOrderDetail(
     static AdminOrderDetail from(CustomerOrder order, InvoiceSummary invoice, List<AuditEntry> history) {
         return new AdminOrderDetail(
                 order.getId(),
+                order.getPublicNumber(),
                 order.getStatus(),
                 order.getCreatedAt(),
                 order.getTotal(),

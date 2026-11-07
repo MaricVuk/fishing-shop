@@ -10,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -43,6 +45,10 @@ public class CustomerOrder {
 
     @Column(name = "created_at")
     private Instant createdAt;
+
+    @Generated(event = EventType.INSERT)
+    @Column(name = "public_token", insertable = false, updatable = false)
+    private String publicToken;
 
     @Column(name = "idempotency_key")
     private String idempotencyKey;
@@ -114,6 +120,14 @@ public class CustomerOrder {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public String getPublicToken() {
+        return publicToken;
+    }
+
+    public String getPublicNumber() {
+        return PublicOrderNumber.format(publicToken);
     }
 
     String getIdempotencyFingerprint() {

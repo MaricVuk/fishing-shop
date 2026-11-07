@@ -32,3 +32,5 @@ Loše:
 
 - **Javno čitanje po nasumičnom tokenu** (UUID uz svaku porudžbinu): bezbedno za goste i dobro za praćenje porudžbine, ali traži novu kolonu i migraciju. Ostaje opcija za kasnije.
 - **Odgovor sa podacima o kupcu**: nepotrebno, jer ih kupac upravo uneo.
+
+**Dopuna (6.7):** broj porudžbine koji kupac vidi više nije redni broj nego 12 nasumičnih heks cifara (`public_token`). To rešava curenje obima prodaje iz uzastopnih brojeva, ali javno čitanje porudžbine i dalje ne postoji: broj služi kao referenca u razgovoru sa radnjom, ne kao ključ za pristup podacima.

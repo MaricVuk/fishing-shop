@@ -144,7 +144,7 @@ class InvoiceTests extends EmployeeTestSupport {
         assertThat(new String(pdf, 0, 5)).isEqualTo("%PDF-");
         assertThat(textOf(pdf))
                 .contains(number)
-                .contains("Porudžbina #" + order)
+                .contains("Porudžbina " + OrderNumbers.numberOf(jdbc, order))
                 .contains("Jovan Đorđević Čačić")
                 .contains("Štap Đerdap Čelik")
                 .contains("INV-ROD")
@@ -435,7 +435,7 @@ class InvoiceTests extends EmployeeTestSupport {
         String response = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return ((Number) JsonPath.read(response, "$.id")).longValue();
+        return OrderNumbers.idOf(jdbc, response);
     }
 
     private ResultActions changeStatus(Cookie session, long order, String status) throws Exception {

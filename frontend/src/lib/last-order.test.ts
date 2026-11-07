@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseStoredOrder } from "@/lib/last-order";
 
 const order = {
-  id: 7,
+  number: "1A2B-3C4D-5E6F",
   status: "NEW",
   total: 9000,
   createdAt: "2026-11-06T00:00:00Z",
@@ -16,7 +16,13 @@ describe("parseStoredOrder", () => {
     expect(parseStoredOrder(JSON.stringify(order))).toEqual(order);
   });
 
-  it.each([null, "", "not json", "null", "[]", '{"id":"7"}', '{"id":7,"total":1}'])(
+  it("ignores an order stored before orders had a public number", () => {
+    const { number, ...oldFormat } = order;
+    expect(number).toBeDefined();
+    expect(parseStoredOrder(JSON.stringify({ ...oldFormat, id: 7 }))).toBeNull();
+  });
+
+  it.each([null, "", "not json", "null", "[]", '{"number":7}', '{"number":"1A2B-3C4D-5E6F","total":1}'])(
     "returns null for %s",
     (raw) => {
       expect(parseStoredOrder(raw)).toBeNull();

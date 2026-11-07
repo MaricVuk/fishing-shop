@@ -121,6 +121,31 @@ class AdminOrderApiTests extends EmployeeTestSupport {
     }
 
     @Test
+    void sellerFindsAnOrderByTheNumberTheCustomerWasGiven() throws Exception {
+        long wanted = placeOrder(rod, 1);
+        placeOrder(reel, 1);
+        Cookie seller = logIn(mvc, SELLER);
+        String number = OrderNumbers.numberOf(jdbc, wanted);
+
+        for (String query : List.of(number, number.toLowerCase(), number.replace("-", ""), "  " + number + " ")) {
+            mvc.perform(get("/api/admin/orders").param("q", query).cookie(seller))
+                    .andExpect(jsonPath("$.content", hasSize(1)))
+                    .andExpect(jsonPath("$.content[0].id").value(wanted))
+                    .andExpect(jsonPath("$.content[0].number").value(number));
+        }
+    }
+
+    @Test
+    void theDetailAndTheListShowTheCustomerFacingNumberNextToTheInternalId() throws Exception {
+        long order = placeOrder(rod, 1);
+        Cookie owner = logIn(mvc, OWNER);
+
+        mvc.perform(get("/api/admin/orders/{id}", order).cookie(owner))
+                .andExpect(jsonPath("$.id").value(order))
+                .andExpect(jsonPath("$.number").value(OrderNumbers.numberOf(jdbc, order)));
+    }
+
+    @Test
     void theDetailShowsTheCustomerTheItemsAndWhatCanHappenNext() throws Exception {
         long order = placeOrder(rod, 2);
 
@@ -332,7 +357,7 @@ class AdminOrderApiTests extends EmployeeTestSupport {
         String response = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return ((Number) JsonPath.read(response, "$.id")).longValue();
+        return OrderNumbers.idOf(jdbc, response);
     }
 
     private long variant(long productId, String sku, String attributes, String price, int stock) {

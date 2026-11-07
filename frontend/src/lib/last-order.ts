@@ -16,7 +16,7 @@ export function parseStoredOrder(raw: string | null): OrderResponse | null {
     const valid =
       data !== null &&
       typeof data === "object" &&
-      typeof data.id === "number" &&
+      typeof data.number === "string" &&
       typeof data.total === "number" &&
       Array.isArray(data.items);
     return valid ? (data as OrderResponse) : null;

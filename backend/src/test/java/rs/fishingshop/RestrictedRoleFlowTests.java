@@ -58,14 +58,15 @@ class RestrictedRoleFlowTests {
         long seller = seedEmployee("prodavac@roles.test", "SELLER");
         Mailpit.clear();
 
-        long order = JsonPath.<Integer>read(mvc.perform(post("/api/orders")
+        String created = mvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"customer":{"name":"Ana Anić","email":"ana@roles.test","phone":"0601234567",
                                 "shippingAddress":"Ulica 1, Beograd"},"items":[{"variantId":%d,"quantity":3}]}
                                 """.formatted(variant)))
                 .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString(), "$.id").longValue();
+                .andReturn().getResponse().getContentAsString();
+        long order = OrderNumbers.idOf(jdbc, created);
         assertThat(stock(variant)).isEqualTo(7);
 
         Cookie ownerSession = logIn("vlasnik@roles.test");

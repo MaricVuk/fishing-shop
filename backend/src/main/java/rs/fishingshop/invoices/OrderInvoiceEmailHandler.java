@@ -38,9 +38,9 @@ class OrderInvoiceEmailHandler implements JobHandler {
         StoredInvoice invoice = invoices.findForOrder(order.getId())
                 .orElseThrow(() -> new IllegalStateException("Order " + order.getId() + " has no invoice to send"));
         String text = "Zdravo " + order.getCustomerName() + ",\n\n"
-                + "u prilogu je račun " + invoice.number() + " za porudžbinu #" + order.getId() + ".\n\n"
+                + "u prilogu je račun " + invoice.number() + " za porudžbinu " + order.getPublicNumber() + ".\n\n"
                 + mail.signature() + "\n";
-        mail.send(order.getCustomerEmail(), "order-invoice-" + order.getId(), "Račun " + invoice.number(), text,
+        mail.send(order.getCustomerEmail(), "order-invoice-" + order.getPublicToken(), "Račun " + invoice.number(), text,
                 new MailAttachment(invoice.number() + ".pdf", invoice.pdf(), "application/pdf"));
     }
 }
