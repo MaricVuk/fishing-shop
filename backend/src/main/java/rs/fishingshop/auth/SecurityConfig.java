@@ -49,6 +49,7 @@ class SecurityConfig {
                         .requestMatchers(LOGIN).permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/password", LOGOUT, "/api/admin/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/actuator/metrics", "/actuator/metrics/*").hasRole("OWNER")
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().denyAll())

@@ -1,8 +1,6 @@
 package rs.fishingshop.admin;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +12,8 @@ import rs.fishingshop.audit.AuditActor;
 import rs.fishingshop.audit.AuditEntityType;
 import rs.fishingshop.audit.AuditService;
 import rs.fishingshop.catalog.PageResponse;
+import rs.fishingshop.jobs.JobQueueSnapshot;
+import rs.fishingshop.jobs.JobQueueStats;
 import rs.fishingshop.jobs.JobStatus;
 import rs.fishingshop.jobs.JobType;
 
@@ -26,27 +26,18 @@ class AdminJobService {
 
     private final JdbcTemplate jdbc;
     private final AuditService audit;
+    private final JobQueueStats stats;
 
-    AdminJobService(JdbcTemplate jdbc, AuditService audit) {
+    AdminJobService(JdbcTemplate jdbc, AuditService audit, JobQueueStats stats) {
         this.jdbc = jdbc;
         this.audit = audit;
+        this.stats = stats;
     }
 
     @Transactional(readOnly = true)
     AdminJobSummary summary() {
-        Map<JobStatus, Long> counts = new EnumMap<>(JobStatus.class);
-        for (JobStatus each : JobStatus.values()) {
-            counts.put(each, 0L);
-        }
-        jdbc.query("SELECT status, count(*) AS jobs FROM background_jobs GROUP BY status",
-                rs -> {
-                    counts.put(JobStatus.valueOf(rs.getString("status")), rs.getLong("jobs"));
-                });
-        OffsetDateTime oldest = jdbc.queryForObject("""
-                SELECT min(next_attempt_at) FROM background_jobs
-                WHERE status = 'PENDING' AND next_attempt_at <= now()
-                """, OffsetDateTime.class);
-        return new AdminJobSummary(counts, oldest == null ? null : oldest.toInstant());
+        JobQueueSnapshot snapshot = stats.snapshot();
+        return new AdminJobSummary(snapshot.counts(), snapshot.oldestOverdueSince());
     }
 
     @Transactional(readOnly = true)

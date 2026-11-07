@@ -93,6 +93,9 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 | Ko vidi izveštaje i obaveštenja | Prodaja i najprodavaniji: vlasnik. Niske zalihe: vlasnik i magacioner. Obaveštenje "nova porudžbina": vlasnik i prodavac. "Poslednji komad prodat": vlasnik i magacioner | prihod nije podatak za sve uloge; svako dobija obaveštenje za posao koji radi |
 | Uživo obaveštenja | Server-Sent Events (`SseEmitter`) na `GET /api/admin/events`, događaj posle commit-a, nadoknada propuštenog po `Last-Event-ID` iz `orders` i `stock_movements`, heartbeat. Bez WebSocket-a ([ADR 0007](adr/0007-admin-live-events-with-sse.md)) | poruke idu samo od servera ka adminu, bez nove zavisnosti i bez posebne zaštite poruka; izazvano agentom `boring-tech-advisor`. Uslov je proba kroz Next `rewrites` na produkcionom build-u, a rezervni put je osvežavanje na 15 s |
 | Grafikoni | shadcn/ui `chart` komponenta (Recharts) | uklapa se u već izabran shadcn/ui; ručni SVG bi tražio sopstvene ose, tooltip i pristupačnost |
+| Logovi (5.1) | Ugrađeni strukturirani logovi Spring Boot-a u ECS JSON formatu na konzoli, bez nove zavisnosti. U profilu `dev` i u testovima ostaje čitljiv tekst | platforma za deploy i alati za logove čitaju JSON po polju; čovek u terminalu čita tekst |
+| Metrike (5.1) | Actuator izlaže `health`, `info` i `metrics`. `metrics` samo za vlasnika (sesija), ostali Actuator endpointi su zatvoreni i za vlasnika. Metrike reda: `shop.jobs{status}`, `shop.jobs.oldest.overdue`, `shop.jobs.worker.last.poll`. Prometheus format tek uz izbor deploya i nadzora | nadzor reda van admin stranice; bez izabranog sistema za prikupljanje Prometheus bi bio zavisnost bez korisnika |
+| Health (5.1) | Komponenta `jobs` pokazuje brojeve po stanju, najstariji zakasneli posao i vreme poslednjeg prolaza workera, ali je uvek `UP`. Detalji samo za vlasnika. Mail health je isključen | `DEAD` mejl ili zaglavljen worker ne smeju da nateraju platformu da restartuje shop ili prestane da mu šalje kupce; uzbuna ide preko metrika. Test je pokazao da je nedostupan SMTP pre 5.1 obarao `/actuator/health` na `503` |
 
 ## Plan za sub-agente po fazama
 
@@ -117,14 +120,14 @@ Spisak odluka sa kratkim obrazloženjem. Veće odluke dobijaju poseban ADR u `do
 
 ## Dug i otvorene stvari
 
-Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blokira Fazu 5; logovi, metrike i nadzor reda su u celini 5.1.
+Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blokira Fazu 5. Logovi, metrike i nadzor reda su urađeni u 5.1, a uzbuna čeka deploy.
 
 | Stvar | Zašto je bitno | Kad |
 |---|---|---|
 | Storno račun kad se potvrđena porudžbina otkaže | sada račun ostaje, a porudžbina je otkazana; isto važi za otkazivanje u trenutku dok posao pravi račun (obrađivač namerno ne zaključava porudžbinu, da admin ne bi čekao na SMTP) | uz 4.3 ili posle Faze 4 |
 | Fiskalizacija (ESIR) | prodaja fizičkim licima u Srbiji traži fiskalni račun; ovaj PDF to nije | van opsega portfolija |
 | Mejl sa ne-ASCII znakovima (`ćevap@example.rs`, `ana@ćevap.rs`) prolazi API i `InternetAddress`, ali ga SMTP server bez `SMTPUTF8` može odbiti | takav posao se ponavlja kao privremena greška pa posle oko dan završi u `DEAD` | kad se izabere mejl provajder |
-| Nadzor reda van admina: metrika ili upozorenje za `DEAD` poslove i zastoj workera, vreme poslednjeg prolaza workera | admin Pregled sada upozorava vlasnika (4.3), ali samo kad otvori stranicu | 5.1, uz strukturirane logove i metrike |
+| Uzbuna na metrike reda (`shop.jobs{status=DEAD}` > 0, `shop.jobs.worker.last.poll` duže od nekoliko minuta, `shop.jobs.oldest.overdue` duže od 10 min) | metrike postoje od 5.1, ali ih niko ne prikuplja dok nema deploya | uz izbor deploya i nadzora (tada i Prometheus format) |
 | Brisanje starih `DONE` poslova (npr. starijih od 90 dana) | tabela samo raste, oko 100k redova godišnje pri sadašnjem obimu | kad zatreba |
 | Ponovljen mejl potvrde koristi trenutno stanje porudžbine | posle više sati ponavljanja kupac otkazane porudžbine dobije "primili smo" | nizak prioritet |
 | JDBC `socketTimeout` i tajmaut transakcije workera; transakcioni pgbouncer ili `idle_in_transaction_session_timeout` bi oslobodili zaključavanje usred slanja | bez toga zaglavljena veza zaustavlja worker; uz takav proxy dva workera mogu da pošalju isti mejl | pre deploya, uz izbor baze |
@@ -134,7 +137,6 @@ Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blok
 | Pri deployu ne uključivati profil `dev` (u njemu su Swagger UI i razvojna lozinka) | bez profila je Swagger isključen, a lozinka obavezna, pa je dovoljno da `dev` ostane isključen | pre deploya |
 | Dockerfile za backend i frontend, ceo sistem jednom komandom | ROADMAP to obećava | pre deploya |
 | End-to-end test cele kupovine (npr. Playwright) | ručna provera nije regresioni test | pre deploya |
-| Strukturirani logovi i metrike (Actuator izlaže samo `health` i `info`) | lakši rad u produkciji | 5.1 |
 | Dependabot (`.github/dependabot.yml`). `npm audit` javlja 13 upozorenja niskog i srednjeg nivoa, bez visokih | zavisnosti zastarevaju | uskoro |
 | CI koristi `mvn`, lokalno `./mvnw`. `ubuntu-latest` prelazi na Ubuntu 26 | ista verzija Mavena i stabilan runner | kad bude zgodno |
 | Indeks za pretragu po nazivu (`pg_trgm`) | `LIKE '%x%'` ne koristi običan indeks, pa je sporo na velikom katalogu | kad katalog naraste |
@@ -190,3 +192,4 @@ Pregled na kraju Faze 1, dopunjen na kraju Faza 2, 3 i 4. Nijedna stavka ne blok
 - **Pregled koda Faze 4** (`code-review`, 10 nalaza, svi ispravljeni): račun i njegov mejl su sada dva posla (`V13`), pa neuspeo mejl ne poništava račun i brojač se ne drži tokom SMTP-a; stanje `RESOLVED` i "Označi kao rešeno"; `summary` za Pregled i Pregled koji ne pada kad poslovi ne odgovore; worker hvata i `Error` (`StackOverflowError` je takođe `VirtualMachineError`, pa se dalje baca samo `OutOfMemoryError`); mejl računa se ne šalje za otkazanu porudžbinu; poruka za `404` kod "Ponovi"; uklonjen nekorišćen `workerEnabled`; `Object.hasOwn` umesto `in` (test sa `toString` je pao pre ispravke). Moja greška u ovom koraku: pokrenuo sam `git rm --cached` za uklonjenu komponentu, što pravila zabranjuju.
 - **Faza 4 zatvorena**: ROADMAP checklista i "Šta su odluke donele", status i "Trenutno radi" u README-u (uz Mailpit, env varijable i RUNBOOK), pregled duga (idempotentni ključ pomeren, logovi i metrike u Fazu 5), `CLAUDE.md` na Fazu 5.
 - **5.0, odluke Faze 5**: agent `boring-tech-advisor` (definicija iz plugina `backend-design`, pokrenut kao opšti agent) izazvao je tri pitanja. Presude: bez keša dok merenje ne pokaže potrebu, SSE umesto WebSocket-a ([ADR 0007](adr/0007-admin-live-events-with-sse.md)), živi upiti umesto zbirnih tabela. Uz to su odlučeni pravilo prihoda, prag niske zalihe, uloge za izveštaje i obaveštenja i biblioteka za grafikone. Tvrdnje agenta koje nisu proverene (tajmaut Next proxy-ja i baferovanje toka) proverava proba u 5.4, a procene broja redova i vremena upita merenje u 5.2.
+- **5.1, logovi i metrike**: ECS JSON logovi van `dev` profila. Actuator `metrics` je otvoren samo za vlasnika. Metrike reda poslova (`JobMetrics`) i health komponenta `jobs` čitaju isti `JobQueueStats`, koji sada koristi i admin Pregled. `JobScheduler` beleži poslednji uspešan prolaz workera (`JobWorkerHeartbeat`). Mail health je isključen. Testovi: health bez detalja za anonimne i za prodavca, detalji za vlasnika, metrike po ulogama, zatvoreni `env`/`loggers`/`beans`/`heapdump`, vrednosti gauge-ova, heartbeat posle uspešnog i neuspešnog prolaza. Mutacija: uključen mail health daje `503` bez SMTP-a. Pokretanje jar-a je pokazalo JSON bez profila i tekst u `dev` profilu. 214 backend testova.

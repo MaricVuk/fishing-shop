@@ -98,7 +98,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [x] CI na svaki pull request i push na `main` (build + testovi)
 - [ ] Dockerfile za backend, ceo sistem podiže jedna komanda
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
-- [ ] Strukturirani logovi, health check, osnovne metrike (Actuator)
+- [x] Strukturirani logovi, health check, osnovne metrike (Actuator, 5.1)
 - [ ] Deploy na javni link (README mora da ima link koji radi)
 - [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [audit log](adr/0005-append-only-audit-log.md), [red poslova u Postgresu](adr/0006-job-queue-in-postgres.md) i [uživo obaveštenja kroz SSE](adr/0007-admin-live-events-with-sse.md))
 
