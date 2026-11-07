@@ -27,6 +27,7 @@ Dobro:
 Loše:
 
 - Zaštita važi protiv grešaka i nepažnje, ne protiv onoga ko ima lozinku baze. Aplikacija se povezuje kao `shop`, a taj nalog u zvaničnoj slici `postgres` je **superkorisnik**: može da isključi trigger (`ALTER TABLE ... DISABLE TRIGGER`), da ga zaobiđe sa `SET session_replication_role = replica` ili da zameni funkciju. Pravo rešenje je poseban nalog za aplikaciju, bez superkorisničkih prava i bez `ALTER`, sa `SELECT` i `INSERT` na `audit_log`, i drugi nalog za Flyway (dug pred deploy). Testovi baš tako čiste tabelu između testova.
+  **Dopuna (6.3):** `compose.prod.yml` ovo zatvara. Backend se povezuje kao `shop_app` (nije vlasnik, nije superkorisnik, na `audit_log` ima samo `SELECT` i `INSERT`), a Flyway kao `shop_migrator`. Test `DatabaseRolesTests` dokazuje da `shop_app` ne može `UPDATE`, `DELETE`, `TRUNCATE`, `DISABLE TRIGGER`, `SET session_replication_role` ni promenu šeme. Razvojna baza i testovi i dalje koriste jedan nalog, pa ta zaštita tamo ne važi.
 - JSONB nije tipiziran: neispravan sadržaj bi se video tek pri čitanju. Baza proverava samo da je vrednost objekat.
 - Tabela samo raste. Arhiviranje starih redova nije u planu.
 

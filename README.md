@@ -133,6 +133,8 @@ Zaustavljanje (podaci ostaju u volumenu `fishing-shop-prod_pgdata`):
 docker compose --env-file demo.env -f compose.prod.yml -f compose.demo.yml down
 ```
 
+Baza u tom steku ima tri naloga: superkorisnika samo za prvo pravljenje, `shop_migrator` za Flyway i `shop_app` za backend, koji ne može da menja audit log ni račune ni šemu ([RUNBOOK](docs/RUNBOOK.md)). Ako si pokretao stek pre ove izmene, ukloni stari volumen sa `docker volume rm fishing-shop-prod_pgdata`.
+
 `demo.env` ima javne demo vrednosti i nalozi sa poznatim lozinkama, pa se ovaj način pokreće samo na lokalnoj mašini (portovi su vezani za `127.0.0.1`). `compose.prod.yml` sam traži prave vrednosti za bazu, mejl server i podatke prodavca (`.env.example`) i bez njih ne startuje. Pravi deploy je odložen ([ADR 0008](docs/adr/0008-deploy-postponed.md)).
 
 ## Struktura repoa
