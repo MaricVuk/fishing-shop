@@ -1,0 +1,106 @@
+import { describe, expect, it } from "vitest";
+import {
+  bucketLabel,
+  bucketTitle,
+  chartValue,
+  formatAmount,
+  formatCount,
+  parseReportQuery,
+  reportPresets,
+  reportsHref,
+  salesApiPath,
+  shopToday,
+} from "@/lib/admin-reports";
+
+describe("parseReportQuery", () => {
+  it("keeps valid dates and granularity", () => {
+    expect(parseReportQuery({ from: "2026-10-01", to: "2026-11-07", granularity: "WEEK" })).toEqual({
+      from: "2026-10-01",
+      to: "2026-11-07",
+      granularity: "WEEK",
+    });
+  });
+
+  it("drops dates that do not exist or are not ISO dates", () => {
+    expect(parseReportQuery({ from: "2026-02-30", to: "7.11.2026" })).toEqual({
+      from: null,
+      to: null,
+      granularity: "DAY",
+    });
+  });
+
+  it("falls back to days for an unknown granularity, including prototype keys", () => {
+    expect(parseReportQuery({ granularity: "YEAR" }).granularity).toBe("DAY");
+    expect(parseReportQuery({ granularity: "toString" }).granularity).toBe("DAY");
+  });
+
+  it("uses the first value of a repeated parameter", () => {
+    expect(parseReportQuery({ from: ["2026-01-01", "2026-02-01"] }).from).toBe("2026-01-01");
+  });
+});
+
+describe("links", () => {
+  it("asks the backend for the chosen period", () => {
+    expect(salesApiPath({ from: "2026-10-01", to: "2026-11-07", granularity: "MONTH" })).toBe(
+      "/api/admin/reports/sales?granularity=MONTH&from=2026-10-01&to=2026-11-07",
+    );
+    expect(salesApiPath({ from: null, to: null, granularity: "DAY" })).toBe(
+      "/api/admin/reports/sales?granularity=DAY",
+    );
+  });
+
+  it("keeps the page URL short for the default view", () => {
+    expect(reportsHref({ from: null, to: null, granularity: "DAY" })).toBe("/admin/reports");
+    expect(reportsHref({ from: "2026-01-01", to: "2026-01-31", granularity: "WEEK" })).toBe(
+      "/admin/reports?from=2026-01-01&to=2026-01-31&granularity=WEEK",
+    );
+  });
+});
+
+describe("shopToday", () => {
+  it("uses the Belgrade calendar", () => {
+    expect(shopToday(new Date("2026-11-07T23:30:00Z"))).toBe("2026-11-08");
+    expect(shopToday(new Date("2026-07-01T21:59:00Z"))).toBe("2026-07-01");
+    expect(shopToday(new Date("2026-07-01T22:00:00Z"))).toBe("2026-07-02");
+  });
+});
+
+describe("reportPresets", () => {
+  it("ends every preset today and starts months on the first", () => {
+    expect(reportPresets("2026-03-31").map((preset) => preset.query)).toEqual([
+      { from: "2026-03-02", to: "2026-03-31", granularity: "DAY" },
+      { from: "2025-10-01", to: "2026-03-31", granularity: "WEEK" },
+      { from: "2025-04-01", to: "2026-03-31", granularity: "MONTH" },
+      { from: "2021-04-01", to: "2026-03-31", granularity: "MONTH" },
+    ]);
+  });
+
+  it("crosses a leap day", () => {
+    expect(reportPresets("2028-03-29")[0].query.from).toBe("2028-02-29");
+  });
+});
+
+describe("labels", () => {
+  it("names buckets by granularity", () => {
+    expect(bucketLabel("2026-11-03", "DAY")).toBe("3. 11.");
+    expect(bucketLabel("2026-11-02", "WEEK")).toBe("od 2. 11.");
+    expect(bucketLabel("2026-11-01", "MONTH")).toBe("nov 2026.");
+    expect(bucketTitle("2026-11-02", "WEEK")).toBe("Nedelja od 2. 11. 2026.");
+    expect(bucketTitle("2026-11-03", "DAY")).toBe("3. 11. 2026.");
+  });
+});
+
+describe("amounts", () => {
+  it("formats the backend string without losing para", () => {
+    expect(formatAmount("30283220.00")).toBe(formatAmount("30283220"));
+    expect(formatAmount("0.10")).toMatch(/0,10/);
+    expect(chartValue("1234.50")).toBe(1234.5);
+  });
+});
+
+describe("formatCount", () => {
+  it("groups thousands the Serbian way", () => {
+    expect(formatCount(212400)).toBe("212.400");
+    expect(formatCount(285)).toBe("285");
+  });
+});

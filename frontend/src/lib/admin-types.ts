@@ -116,3 +116,21 @@ export type AdminJob = {
 export type AdminJobSummary = { counts: Record<JobStatus, number>; oldestOverdueSince: string | null };
 
 export type AdminJobOverview = AdminJobSummary & { jobs: AdminPage<AdminJob> };
+
+export type ReportGranularity = "DAY" | "WEEK" | "MONTH";
+
+export type SalesBucket = {
+  start: string;
+  revenue: string;
+  orders: number;
+  newRevenue: string;
+  newOrders: number;
+};
+
+export type SalesReport = {
+  from: string;
+  to: string;
+  granularity: ReportGranularity;
+  totals: { revenue: string; orders: number; newRevenue: string; newOrders: number };
+  buckets: SalesBucket[];
+};
