@@ -106,3 +106,25 @@ export function describeInvoice(orderId: number, invoice: InvoiceSummary): Invoi
       return null;
   }
 }
+
+export function describeCreditNote(orderId: number, creditNote: InvoiceSummary): InvoiceView | null {
+  switch (creditNote.status) {
+    case "ISSUED":
+      return {
+        title: creditNote.number ?? "Storno",
+        text: creditNote.issuedAt ? `Storno izdat ${formatDateTime(creditNote.issuedAt)}` : "Storno izdat",
+        href: `/api/admin/orders/${orderId}/credit-note`,
+      };
+    case "PENDING":
+      return { title: "Storno se pravi", text: "Porudžbina je otkazana posle računa. Osveži stranicu.", href: null };
+    case "FAILED":
+      return {
+        title: "Storno nije napravljen",
+        text: "Svi pokušaji su propali. Javi administratoru.",
+        href: null,
+      };
+    case "NONE":
+      return null;
+  }
+}
+

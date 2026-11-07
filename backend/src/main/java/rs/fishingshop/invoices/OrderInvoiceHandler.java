@@ -29,7 +29,9 @@ class OrderInvoiceHandler implements JobHandler {
 
     @Override
     public void handle(ClaimedJob job) {
-        CustomerOrder order = orders.findWithItems(job.orderId())
+        // The order row stays locked until the invoice is committed, so a cancel either happens first (and no
+        // invoice is issued) or waits and then sees the invoice it has to reverse with a credit note.
+        CustomerOrder order = orders.findForUpdate(job.orderId())
                 .orElseThrow(() -> new IllegalStateException("Order " + job.orderId() + " does not exist"));
         boolean issued = invoices.findForOrder(order.getId()).isPresent();
         if (!issued && order.getStatus() == OrderStatus.CANCELLED) {

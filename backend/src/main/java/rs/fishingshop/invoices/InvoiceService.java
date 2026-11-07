@@ -44,6 +44,9 @@ public class InvoiceService {
         Vat vat = Vat.ofGross(order.getTotal(), properties.vatRate());
 
         byte[] document = pdf.render(new InvoicePdf.Document(
+                "RAČUN",
+                null,
+                "Ukupno za plaćanje",
                 number,
                 issuedAt.toInstant(),
                 order.getPublicNumber(),
@@ -67,6 +70,12 @@ public class InvoiceService {
                 """, order.getId(), year, sequence, number, issuedAt, order.getTotal(), properties.vatRate(),
                 vat.amount(), document);
         return new StoredInvoice(number, document);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isIssued(long orderId) {
+        return Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM invoices WHERE order_id = ?)", Boolean.class, orderId));
     }
 
     @Transactional(readOnly = true)

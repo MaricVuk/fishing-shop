@@ -18,6 +18,8 @@ const TYPE_LABELS: Record<JobType, string> = {
   ORDER_CONFIRMATION_EMAIL: "Potvrda porudžbine",
   ORDER_INVOICE: "Račun",
   ORDER_INVOICE_EMAIL: "Mejl sa računom",
+  ORDER_CREDIT_NOTE: "Storno računa",
+  ORDER_CREDIT_NOTE_EMAIL: "Mejl sa stornom",
 };
 
 const MAX_PAGE = 10_000;

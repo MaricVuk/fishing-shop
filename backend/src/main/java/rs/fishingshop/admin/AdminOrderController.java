@@ -59,6 +59,17 @@ class AdminOrderController {
                 .body(invoice.pdf());
     }
 
+    @GetMapping("/{id}/credit-note")
+    ResponseEntity<byte[]> creditNote(@PathVariable Long id) {
+        StoredInvoice creditNote = orders.creditNote(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(creditNote.number() + ".pdf").build().toString())
+                .cacheControl(CacheControl.noStore())
+                .body(creditNote.pdf());
+    }
+
     @PostMapping("/{id}/status")
     AdminOrderDetail changeStatus(@AuthenticationPrincipal EmployeePrincipal employee, @PathVariable Long id,
             @Valid @RequestBody ChangeOrderStatusRequest request) {

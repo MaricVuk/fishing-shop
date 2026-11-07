@@ -94,13 +94,17 @@ class InvoiceTests extends EmployeeTestSupport {
     @AfterEach
     void removeTestData() {
         clearAuditLog();
+        jdbc.execute("ALTER TABLE credit_notes DISABLE TRIGGER USER");
         jdbc.execute("ALTER TABLE invoices DISABLE TRIGGER USER");
         try {
+            jdbc.update("DELETE FROM credit_notes");
             jdbc.update("DELETE FROM invoices");
         } finally {
             jdbc.execute("ALTER TABLE invoices ENABLE TRIGGER USER");
+            jdbc.execute("ALTER TABLE credit_notes ENABLE TRIGGER USER");
         }
         jdbc.update("DELETE FROM invoice_counters");
+        jdbc.update("DELETE FROM credit_note_counters");
         List<Long> orders = jdbc.queryForList(
                 "SELECT id FROM orders WHERE customer_email LIKE '%@invoices.test'", Long.class);
         jdbc.update("DELETE FROM stock_movements WHERE variant_id IN "

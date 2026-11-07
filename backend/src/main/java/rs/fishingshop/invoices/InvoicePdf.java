@@ -28,6 +28,9 @@ class InvoicePdf {
     }
 
     record Document(
+            String title,
+            String reference,
+            String totalLabel,
             String number,
             Instant issuedAt,
             String orderNumber,
@@ -69,7 +72,7 @@ class InvoicePdf {
                     PDType0Font.load(pdf, regular, true),
                     PDType0Font.load(pdf, semiBold, true),
                     PDType0Font.load(pdf, title, true));
-            pdf.getDocumentInformation().setTitle("Račun " + invoice.number());
+            pdf.getDocumentInformation().setTitle(invoice.title() + " " + invoice.number());
             new Writer(pdf, fonts, invoice).write();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             pdf.save(out);
@@ -129,11 +132,14 @@ class InvoicePdf {
         }
 
         private void header() throws IOException {
-            text(fonts.title(), 26, LEFT, y - 12, "RAČUN");
+            text(fonts.title(), 26, LEFT, y - 12, invoice.title());
             textRight(fonts.semiBold(), 12, RIGHT, y, invoice.number());
             textRight(fonts.regular(), 10, RIGHT, y - 15,
                     "Datum izdavanja: " + DATE.format(invoice.issuedAt().atZone(SHOP_ZONE)));
             textRight(fonts.regular(), 10, RIGHT, y - 29, "Porudžbina " + invoice.orderNumber());
+            if (invoice.reference() != null) {
+                textRight(fonts.semiBold(), 10, RIGHT, y - 43, invoice.reference());
+            }
             y -= 70;
         }
 
@@ -211,7 +217,7 @@ class InvoicePdf {
             totalRow(fonts.regular(), 10, "PDV " + rate + "%", RsdFormat.withCurrency(invoice.vat().amount()));
             rule(y + 6, 0.8f, 340);
             y -= 6;
-            totalRow(fonts.semiBold(), 12, "Ukupno za plaćanje", RsdFormat.withCurrency(invoice.total()));
+            totalRow(fonts.semiBold(), 12, invoice.totalLabel(), RsdFormat.withCurrency(invoice.total()));
         }
 
         private void totalRow(PDType0Font font, float size, String label, String value) throws IOException {
