@@ -61,9 +61,8 @@ class OrderJobEnqueueTests extends CommittedOrderTestSupport {
         return jdbc.queryForObject("SELECT count(*) FROM background_jobs", Integer.class);
     }
 
-    private static long orderIdOf(ResultActions result) throws Exception {
-        Number id = JsonPath.read(result.andReturn().getResponse().getContentAsString(), "$.id");
-        return id.longValue();
+    private long orderIdOf(ResultActions result) throws Exception {
+        return OrderNumbers.idOf(jdbc, result.andReturn().getResponse().getContentAsString());
     }
 
     private ResultActions placeOrder(String itemsJson) throws Exception {

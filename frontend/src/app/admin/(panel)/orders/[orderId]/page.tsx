@@ -32,7 +32,9 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[or
         <h1 className="text-3xl font-bold">Porudžbina #{order.id}</h1>
         <OrderStatusBadge status={order.status} />
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">Primljena {formatDateTime(order.createdAt)}</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Primljena {formatDateTime(order.createdAt)} · broj za kupca <span className="tabular-nums">{order.number}</span>
+      </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
         <section aria-labelledby="stavke">

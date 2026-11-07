@@ -33,7 +33,7 @@ export function OrderConfirmation() {
     <div className="max-w-xl">
       <h1 className="text-3xl font-bold sm:text-4xl">Porudžbina je primljena</h1>
       <p className="mt-3 text-lg">
-        Hvala! Broj vaše porudžbine je <strong className="tabular-nums">#{order.id}</strong>.
+        Hvala! Broj vaše porudžbine je <strong className="tabular-nums">{order.number}</strong>.
       </p>
       <p className="mt-1 text-muted-foreground">
         Javićemo vam se u vezi sa isporukom.

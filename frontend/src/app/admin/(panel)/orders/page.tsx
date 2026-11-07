@@ -39,7 +39,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         <form action="/admin/orders" method="get" role="search" className="flex w-full max-w-sm gap-2">
           {query.status && <input type="hidden" name="status" value={query.status} />}
           <label htmlFor="q" className="sr-only">
-            Pretraga po broju, imenu ili emailu kupca
+            Pretraga po broju (internom ili iz mejla kupca), imenu ili emailu
           </label>
           <Input id="q" name="q" defaultValue={query.q} placeholder="Broj, ime ili email" maxLength={100} className="h-10" />
           <Button type="submit" size="lg" className="h-10">
@@ -88,6 +88,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                     <Link href={`/admin/orders/${row.id}`} className="font-semibold text-primary underline-offset-4 hover:underline">
                       #{row.id}
                     </Link>
+                    <span className="block text-xs tabular-nums text-muted-foreground">{row.number}</span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(row.createdAt)}</td>
                   <td className="px-4 py-3">

@@ -46,9 +46,9 @@ class OrderConfirmationEmailTests extends CommittedOrderTestSupport {
         assertThat((Integer) JsonPath.read(messages, "$.total")).isEqualTo(1);
         assertThat((List<String>) JsonPath.read(messages, "$.messages[0].To[*].Address"))
                 .containsExactly("marko@example.com");
-        assertThat((String) JsonPath.read(messages, "$.messages[0].Subject")).contains("#" + orderId);
+        assertThat((String) JsonPath.read(messages, "$.messages[0].Subject")).contains(OrderNumbers.numberOf(jdbc, orderId));
         assertThat((String) JsonPath.read(messages, "$.messages[0].MessageID"))
-                .isEqualTo("order-confirmation-" + orderId + "@fishing-shop.test");
+                .isEqualTo("order-confirmation-" + OrderNumbers.tokenOf(jdbc, orderId) + "@fishing-shop.test");
 
         String id = JsonPath.read(messages, "$.messages[0].ID");
         String text = JsonPath.read(Mailpit.message(id), "$.Text");
@@ -102,6 +102,6 @@ class OrderConfirmationEmailTests extends CommittedOrderTestSupport {
         String response = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return ((Number) JsonPath.read(response, "$.id")).longValue();
+        return OrderNumbers.idOf(jdbc, response);
     }
 }

@@ -12,11 +12,11 @@ interface AdminOrderRepository extends Repository<CustomerOrder, Long> {
 
     @Query(value = """
             select new rs.fishingshop.admin.AdminOrderRow(
-                o.id, o.createdAt, o.status, o.customerName, o.customerEmail, o.total,
+                o.id, o.publicToken, o.createdAt, o.status, o.customerName, o.customerEmail, o.total,
                 (select count(i) from OrderItem i where i.order = o))
             from CustomerOrder o
             where (:status is null or o.status = :status)
-              and (o.id = :orderId
+              and (o.id = :orderId or o.publicToken = :token
                    or lower(o.customerName) like :pattern escape '\\'
                    or lower(o.customerEmail) like :pattern escape '\\')
             order by o.createdAt desc, o.id desc
@@ -24,10 +24,10 @@ interface AdminOrderRepository extends Repository<CustomerOrder, Long> {
             select count(o)
             from CustomerOrder o
             where (:status is null or o.status = :status)
-              and (o.id = :orderId
+              and (o.id = :orderId or o.publicToken = :token
                    or lower(o.customerName) like :pattern escape '\\'
                    or lower(o.customerEmail) like :pattern escape '\\')
             """)
     Page<AdminOrderRow> search(@Param("status") OrderStatus status, @Param("orderId") Long orderId,
-            @Param("pattern") String pattern, Pageable pageable);
+            @Param("token") String token, @Param("pattern") String pattern, Pageable pageable);
 }

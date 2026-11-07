@@ -26,15 +26,15 @@ class OrderConfirmationEmailHandler implements JobHandler {
     public void handle(ClaimedJob job) {
         CustomerOrder order = orders.findWithItems(job.orderId())
                 .orElseThrow(() -> new IllegalStateException("Order " + job.orderId() + " does not exist"));
-        mail.send(order.getCustomerEmail(), "order-confirmation-" + order.getId(),
-                "Potvrda porudžbine #" + order.getId(), body(order), null);
+        mail.send(order.getCustomerEmail(), "order-confirmation-" + order.getPublicToken(),
+                "Potvrda porudžbine " + order.getPublicNumber(), body(order), null);
     }
 
     private String body(CustomerOrder order) {
         StringBuilder text = new StringBuilder()
                 .append("Zdravo ").append(order.getCustomerName()).append(",\n\n")
                 .append("hvala na porudžbini. Primili smo je i javićemo se kada bude poslata.\n\n")
-                .append("Porudžbina #").append(order.getId()).append("\n\n");
+                .append("Porudžbina ").append(order.getPublicNumber()).append("\n\n");
         for (OrderItem item : order.getItems()) {
             text.append(item.getProductName()).append(" (").append(item.getSku()).append(")\n")
                     .append("  ").append(item.getQuantity()).append(" x ")

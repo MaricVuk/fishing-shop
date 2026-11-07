@@ -212,7 +212,7 @@ class AdminEventStreamTests extends CommittedOrderTestSupport {
     private long placeOrder(long variant, int quantity) throws Exception {
         HttpResponse<String> response = postOrder(variant, quantity);
         assertThat(response.statusCode()).isEqualTo(201);
-        return ((Number) JsonPath.read(response.body(), "$.id")).longValue();
+        return OrderNumbers.idOf(jdbc, response.body());
     }
 
     private HttpResponse<String> postOrder(long variant, int quantity) throws Exception {

@@ -46,7 +46,7 @@ public class InvoiceService {
         byte[] document = pdf.render(new InvoicePdf.Document(
                 number,
                 issuedAt.toInstant(),
-                order.getId(),
+                order.getPublicNumber(),
                 order.getCustomerName(),
                 order.getShippingAddress(),
                 order.getCustomerEmail(),

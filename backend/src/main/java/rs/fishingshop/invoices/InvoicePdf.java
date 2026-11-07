@@ -30,7 +30,7 @@ class InvoicePdf {
     record Document(
             String number,
             Instant issuedAt,
-            long orderId,
+            String orderNumber,
             String customerName,
             String customerAddress,
             String customerEmail,
@@ -133,7 +133,7 @@ class InvoicePdf {
             textRight(fonts.semiBold(), 12, RIGHT, y, invoice.number());
             textRight(fonts.regular(), 10, RIGHT, y - 15,
                     "Datum izdavanja: " + DATE.format(invoice.issuedAt().atZone(SHOP_ZONE)));
-            textRight(fonts.regular(), 10, RIGHT, y - 29, "Porudžbina #" + invoice.orderId());
+            textRight(fonts.regular(), 10, RIGHT, y - 29, "Porudžbina " + invoice.orderNumber());
             y -= 70;
         }
 

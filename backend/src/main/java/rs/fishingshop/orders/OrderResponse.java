@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.List;
 
 public record OrderResponse(
-        Long id, OrderStatus status, BigDecimal total, Instant createdAt, List<Item> items) {
+        String number, OrderStatus status, BigDecimal total, Instant createdAt, List<Item> items) {
 
     public record Item(
             String productName, String sku, BigDecimal unitPrice, int quantity, BigDecimal lineTotal) {
@@ -20,6 +20,6 @@ public record OrderResponse(
                         item.getQuantity(),
                         item.lineTotal()))
                 .toList();
-        return new OrderResponse(order.getId(), order.getStatus(), order.getTotal(), order.getCreatedAt(), items);
+        return new OrderResponse(order.getPublicNumber(), order.getStatus(), order.getTotal(), order.getCreatedAt(), items);
     }
 }

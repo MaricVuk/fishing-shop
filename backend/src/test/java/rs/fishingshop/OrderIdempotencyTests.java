@@ -55,7 +55,7 @@ class OrderIdempotencyTests extends CommittedOrderTestSupport {
         assertThat(stockOf(variant)).isEqualTo(8);
         assertThat(unitsOrdered(variant)).isEqualTo(2);
         assertThat(ordersWithKey(key)).isEqualTo(1);
-        long order = JsonPath.<Integer>read(first.getContentAsString(), "$.id").longValue();
+        long order = OrderNumbers.idOf(jdbc, first.getContentAsString());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM background_jobs WHERE order_id = ?", Integer.class, order))
                 .isEqualTo(1);
     }
@@ -69,9 +69,9 @@ class OrderIdempotencyTests extends CommittedOrderTestSupport {
         List<MockHttpServletResponse> responses = sendConcurrently(key, body);
 
         assertThat(responses).allSatisfy(response -> assertThat(response.getStatus()).isEqualTo(201));
-        Set<Integer> ids = new TreeSet<>();
+        Set<String> ids = new TreeSet<>();
         for (MockHttpServletResponse response : responses) {
-            ids.add(JsonPath.read(response.getContentAsString(), "$.id"));
+            ids.add(JsonPath.read(response.getContentAsString(), "$.number"));
         }
         assertThat(ids).hasSize(1);
         assertThat(responses).filteredOn(response -> response.getHeader(REPLAYED_HEADER) == null).hasSize(1);
