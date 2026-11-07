@@ -81,15 +81,15 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - Pregled `incident-thinker` pre puštanja workera i pregled koda cele faze (10 nalaza, svi ispravljeni); postupci su u [RUNBOOK.md](RUNBOOK.md)
 - Idempotentni ključ za porudžbinu je pomeren u dug
 
-## Faza 5: Izveštaji, dashboard, uživo obaveštenja (sledeća)
+## Faza 5: Izveštaji, dashboard, uživo obaveštenja (u toku)
 
 - [ ] Izveštaji: prodaja po periodu, najprodavaniji, niske zalihe
 - [ ] Admin dashboard sa grafikonima
-- [ ] WebSocket obaveštenja (nova porudžbina, poslednji komad)
+- [ ] Uživo obaveštenja u adminu (nova porudžbina, poslednji komad) kroz Server-Sent Events ([ADR 0007](adr/0007-admin-live-events-with-sse.md))
 
 **Tehničke stvari na koje treba obratiti pažnju**
 - Agregacioni SQL upiti, indeksi, `EXPLAIN ANALYZE`
-- Keširanje (Redis ili Caffeine) i invalidacija
+- Keširanje i invalidacija: bez keša dok merenje ne pokaže potrebu, zatim Caffeine sa TTL-om (odluka u [DECISIONS.md](DECISIONS.md))
 - Opterećenje: bar jedan load test (k6 ili Gatling) sa brojevima u README-u
 
 ## Kroz sve faze: kvalitet i inženjerske prakse
@@ -100,7 +100,7 @@ Svaka faza se završi tako da posle nje nešto radi. Redosled je bitan, rokova n
 - [x] Flyway: šema se menja samo novim migracijama, nikad izmenom stare
 - [ ] Strukturirani logovi, health check, osnovne metrike (Actuator)
 - [ ] Deploy na javni link (README mora da ima link koji radi)
-- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [audit log](adr/0005-append-only-audit-log.md) i [red poslova u Postgresu](adr/0006-job-queue-in-postgres.md))
+- [x] ADR beleške: kratke odluke "zašto X a ne Y" u `docs/adr/` (do sada [korpa u browseru](adr/0001-client-side-cart.md), [porudžbine bez javnog čitanja](adr/0002-orders-without-public-read.md), [zaključavanje zalihe](adr/0003-pessimistic-locking-for-stock.md), [prijava sa sesijom](adr/0004-employee-login-with-server-sessions.md), [audit log](adr/0005-append-only-audit-log.md), [red poslova u Postgresu](adr/0006-job-queue-in-postgres.md) i [uživo obaveštenja kroz SSE](adr/0007-admin-live-events-with-sse.md))
 
 ## Otvorene odluke
 
